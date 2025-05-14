@@ -3,6 +3,10 @@
 # dependencies
 /frontend/node_modules
 /backend/venv
+/backend/__pycache__
+/backend/public
+/frontend/package-lock.json
+
 /.pnp
 .pnp.js
 

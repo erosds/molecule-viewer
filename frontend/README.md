@@ -1,70 +1,152 @@
-# Getting Started with Create React App
+# Visualizzatore Molecolare
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+Applicazione per visualizzare strutture molecolari 2D e 3D a partire da file CSV contenenti stringhe SMILES.
 
-## Available Scripts
+## Caratteristiche
 
-In the project directory, you can run:
+- Caricamento di file CSV contenenti stringhe SMILES
+- Visualizzazione 2D delle molecole generate con RDKit
+- Generazione di modelli 3D (file PDB) per le molecole selezionate
+- Interfaccia utente reattiva e moderna
 
-### `npm start`
+## Requisiti
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+### Backend
+- Python 3.8+
+- FastAPI
+- RDKit
+- Uvicorn
+- Pillow
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+### Frontend
+- Node.js 14+
+- React 18+
+- npm o yarn
 
-### `npm test`
+## Installazione
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+### Backend
 
-### `npm run build`
+1. Crea un ambiente virtuale Python (consigliato):
+   ```
+   python -m venv venv
+   ```
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+2. Attiva l'ambiente virtuale:
+   - Windows: `venv\Scripts\activate`
+   - macOS/Linux: `source venv/bin/activate`
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+3. Installa le dipendenze:
+   ```
+   pip install -r requirements.txt
+   ```
+   
+   Nota: RDKit potrebbe richiedere passaggi aggiuntivi per l'installazione. Su alcuni sistemi, potrebbe essere più facile installarlo tramite conda:
+   ```
+   conda install -c conda-forge rdkit
+   ```
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+4. Crea le cartelle necessarie per i file statici:
+   ```
+   mkdir -p public/csv public/molecules public/images
+   ```
 
-### `npm run eject`
+5. Aggiungi alcuni file CSV di esempio nella cartella `public/csv`
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+### Frontend
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+1. Naviga nella directory del frontend:
+   ```
+   cd frontend
+   ```
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+2. Installa le dipendenze:
+   ```
+   npm install
+   ```
+   o
+   ```
+   yarn install
+   ```
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+## Avvio dell'applicazione
 
-## Learn More
+### Backend
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+1. Dalla directory principale, avvia il server backend:
+   ```
+   cd backend
+   python main.py
+   ```
+   
+   Il server sarà disponibile all'indirizzo: http://localhost:8000
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+### Frontend
 
-### Code Splitting
+1. In un altro terminale, avvia il server di sviluppo React:
+   ```
+   cd frontend
+   npm start
+   ```
+   o
+   ```
+   yarn start
+   ```
+   
+   L'applicazione sarà disponibile all'indirizzo: http://localhost:3000
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+## Struttura del progetto
 
-### Analyzing the Bundle Size
+```
+/
+├── backend/
+│   ├── main.py                # Server FastAPI
+│   ├── molecule_utils.py      # Funzioni per la gestione delle molecole
+│   ├── requirements.txt       # Dipendenze Python
+│   └── public/
+│       ├── csv/               # File CSV con dati molecolari
+│       ├── molecules/         # Modelli 3D generati (PDB)
+│       └── images/            # Immagini 2D generate (PNG)
+│
+└── frontend/
+    ├── public/
+    │   └── index.html
+    ├── src/
+    │   ├── App.js             # Componente principale
+    │   ├── components/
+    │   │   ├── FileSelector.js   # Selettore file CSV
+    │   │   ├── MoleculeGrid.js   # Griglia di molecole
+    │   │   └── MoleculeViewer.js # Visualizzatore 3D
+    │   └── index.js
+    └── package.json
+```
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+## Utilizzo
 
-### Making a Progressive Web App
+1. Avvia sia il backend che il frontend come descritto sopra
+2. Apri il browser all'indirizzo http://localhost:3000
+3. Seleziona un file CSV dal menu a discesa (deve contenere una colonna SMILES)
+4. Le molecole verranno visualizzate in una griglia con immagini 2D generate da RDKit
+5. Fai clic su una molecola per aprire il visualizzatore 3D
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
+## Note per lo sviluppo
 
-### Advanced Configuration
+- Il frontend comunica con il backend tramite API REST
+- Le immagini 2D sono generate al volo utilizzando RDKit e memorizzate nella cache
+- I modelli 3D sono generati solo quando richiesti e memorizzati nella cache
+- Il proxy nel package.json del frontend reindirizza automaticamente le chiamate API al backend
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
+## Risoluzione dei problemi
 
-### Deployment
+1. **Errore "No module named 'rdkit'"**:
+   - Verifica che RDKit sia installato correttamente
+   - Prova ad installarlo usando conda: `conda install -c conda-forge rdkit`
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
+2. **Nessun file CSV disponibile**:
+   - Aggiungi almeno un file CSV nella cartella `backend/public/csv`
+   - Assicurati che il file CSV contenga una colonna con "smiles" nel nome
 
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+3. **Le immagini delle molecole non vengono caricate**:
+   - Verifica che il backend sia in esecuzione
+   - Controlla i log del backend per eventuali errori nella generazione delle immagini
+   - Assicurati che i percorsi delle cartelle siano corretti
