@@ -1,70 +1,144 @@
-# Getting Started with Create React App
+# Visualizzatore Molecolare 3D
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+Un'applicazione web per visualizzare strutture molecolari in 3D a partire da notazioni SMILES.
 
-## Available Scripts
+## Caratteristiche
 
-In the project directory, you can run:
+- Interfaccia utente intuitiva e reattiva basata su React
+- Caricamento e selezione di file CSV contenenti strutture SMILES
+- Generazione di modelli 3D delle molecole con RDKit
+- Visualizzazione 3D interattiva tramite 3Dmol.js
+- Generazione di immagini SVG per le molecole
+- Visualizzazione di proprietà molecolari
 
-### `npm start`
+## Struttura del Progetto
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+```
+molecule-viewer/
+├── frontend/               # Applicazione React
+│   ├── public/             # File statici
+│   └── src/                # Codice sorgente
+│       ├── components/     # Componenti React
+│       └── ...
+└── backend/                # API FastAPI
+    ├── main.py             # Server principale
+    ├── molecule_utils.py   # Utilità per la gestione delle molecole
+    └── ...
+```
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+## Requisiti
 
-### `npm test`
+### Frontend
+- Node.js >= 14
+- npm >= 7
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+### Backend
+- Python >= 3.8
+- FastAPI
+- RDKit
+- Uvicorn
 
-### `npm run build`
+## Installazione
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+1. Clonare il repository:
+   ```bash
+   git clone https://github.com/tuousername/molecule-viewer.git
+   cd molecule-viewer
+   ```
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+2. Configurare l'ambiente virtuale per il backend:
+   ```bash
+   cd backend
+   python -m venv venv
+   source venv/bin/activate  # Per Linux/Mac
+   # oppure
+   venv\Scripts\activate  # Per Windows
+   pip install -r requirements.txt
+   cd ..
+   ```
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+3. Installare le dipendenze del frontend:
+   ```bash
+   cd frontend
+   npm install
+   cd ..
+   ```
 
-### `npm run eject`
+4. Installare le dipendenze globali del progetto:
+   ```bash
+   npm install
+   ```
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+## Esecuzione
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+È possibile avviare l'applicazione in due modi:
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+### Avvio Simultaneo di Frontend e Backend
+Utilizzare lo script npm nella directory principale:
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+```bash
+npm start
+```
 
-## Learn More
+Questo avvierà sia il backend che il frontend contemporaneamente.
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+### Avvio Separato
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+1. Avviare il backend:
+   ```bash
+   cd backend
+   source venv/bin/activate  # Per Linux/Mac o venv\Scripts\activate per Windows
+   python main.py
+   ```
 
-### Code Splitting
+2. In un altro terminale, avviare il frontend:
+   ```bash
+   cd frontend
+   npm start
+   ```
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+L'applicazione sarà disponibile all'indirizzo `http://localhost:3000`.
 
-### Analyzing the Bundle Size
+## Utilizzo
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+1. Caricare un file CSV contenente strutture molecolari in formato SMILES
+   - Il file deve avere almeno una colonna denominata "SMILES" (case-insensitive)
+   - Opzionalmente può avere colonne "Nome" e "Formula"
 
-### Making a Progressive Web App
+2. Selezionare un file dalla lista
+   - L'applicazione visualizzerà le molecole trovate nel file
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
+3. Fare clic su una molecola per visualizzarla in 3D
+   - Si aprirà un visualizzatore interattivo che permette di:
+     - Ruotare la molecola
+     - Ingrandire/rimpicciolire
+     - Visualizzare i dettagli della molecola
 
-### Advanced Configuration
+## Soluzione dei Problemi
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
+### Errore nel caricamento delle dipendenze
 
-### Deployment
+Se si riscontrano problemi nell'installazione di RDKit, può essere utile utilizzare Conda:
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
+```bash
+conda create -n rdkit-env python=3.9
+conda activate rdkit-env
+conda install -c conda-forge rdkit
+pip install fastapi uvicorn python-multipart
+```
 
-### `npm run build` fails to minify
+### Il visualizzatore 3D non funziona
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+- Assicurarsi che jQuery e 3Dmol.js siano correttamente caricati
+- Verificare la console del browser per errori JavaScript
+- Controllare che il backend sia in esecuzione e risponda alle richieste
+
+### Formato del file CSV non riconosciuto
+
+- Verificare che il file CSV contenga una colonna denominata "SMILES" (o una variante come "smiles", "SMILE", ecc.)
+- Controllare l'encoding del file (UTF-8 è consigliato)
+- Assicurarsi che il delimitatore sia la virgola
+
+## Licenza
+
+MIT

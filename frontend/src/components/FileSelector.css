@@ -10,8 +10,23 @@
 .file-selector-container {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   flex-wrap: wrap;
   gap: 1rem;
+}
+
+.file-selector-left {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+  flex: 1;
+}
+
+.file-selector-right {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
 .file-selector-container label {
@@ -44,6 +59,51 @@
   box-shadow: 0 0 0 2px rgba(0, 122, 255, 0.15);
 }
 
+.file-upload-button {
+  background-color: var(--primary-color);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  white-space: nowrap;
+}
+
+.file-upload-button:hover:not(:disabled) {
+  background-color: #0066dd;
+}
+
+.file-upload-button:disabled {
+  background-color: #a0a0a0;
+  cursor: not-allowed;
+}
+
+.file-refresh-button {
+  background-color: transparent;
+  color: var(--primary-color);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.file-refresh-button:hover:not(:disabled) {
+  background-color: rgba(0, 122, 255, 0.05);
+}
+
+.file-refresh-button:disabled {
+  color: #a0a0a0;
+  cursor: not-allowed;
+}
+
 .file-selector-loading,
 .file-selector-error {
   padding: 0.75rem;
@@ -52,4 +112,24 @@
 
 .file-selector-error {
   color: #ff3b30;
+}
+
+@media (max-width: 768px) {
+  .file-selector-container {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .file-selector-left {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .file-selector-right {
+    justify-content: space-between;
+  }
+  
+  .file-selector-dropdown {
+    max-width: 100%;
+  }
 }

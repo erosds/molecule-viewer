@@ -2,38 +2,19 @@ import os
 import tempfile
 import logging
 from pathlib import Path
+import math
+import random
 
 # Configura il logger
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# In una implementazione reale, questo file importerebbe librerie come RDKit
-# Qui forniamo un'implementazione semplificata che simula la conversione
-
 def smiles_to_3d(smiles, output_path):
     """
-    Converte una stringa SMILES in un modello 3D e lo salva nel percorso specificato.
+    Crea un file PDB fittizio per la visualizzazione.
     
-    In un'implementazione reale, questa funzione userebbe RDKit:
-    
-    from rdkit import Chem
-    from rdkit.Chem import AllChem
-    
-    mol = Chem.MolFromSmiles(smiles)
-    if mol is None:
-        return False
-        
-    # Aggiunta degli idrogeni
-    mol = Chem.AddHs(mol)
-    
-    # Generazione della conformazione 3D
-    AllChem.EmbedMolecule(mol, AllChem.ETKDG())
-    
-    # Ottimizzazione della geometria
-    AllChem.MMFFOptimizeMolecule(mol)
-    
-    # Scrittura del file PDB
-    Chem.MolToPDBFile(mol, output_path)
+    Questo è un sostituto semplificato che non richiede RDKit.
+    In una implementazione reale, usare RDKit per una corretta generazione 3D.
     
     Args:
         smiles (str): Stringa SMILES della molecola
@@ -45,45 +26,141 @@ def smiles_to_3d(smiles, output_path):
     try:
         logger.info(f"Elaborazione SMILES: {smiles}")
         
-        # In questa implementazione semplificata, creiamo un file PDB di esempio
+        # Identificazione di alcuni elementi basilari dalla stringa SMILES
+        atoms = []
+        # Elementi più comuni in chimica organica
+        elements = {'C': 0, 'H': 0, 'O': 0, 'N': 0, 'P': 0, 'S': 0}
+        
+        # Conteggio molto approssimativo degli elementi (non accurato!)
+        for char in smiles:
+            if char in elements:
+                elements[char] += 1
+        
+        # Aggiungi almeno un atomo per ogni elemento presente
+        atom_id = 1
+        center_x, center_y, center_z = 0, 0, 0
+        
         with open(output_path, "w") as f:
-            # Creazione di un file PDB di esempio molto semplificato
-            f.write("HEADER    MOLECULE FROM SMILES\n")
+            f.write("HEADER    MOCK MOLECULE FROM SMILES\n")
             f.write(f"TITLE     Generated from SMILES: {smiles}\n")
             
-            # In un'implementazione reale, qui ci sarebbero le coordinate atomiche
-            # generate da RDKit o altre librerie
-            f.write("ATOM      1  C   UNK     1       0.000   0.000   0.000\n")
-            f.write("ATOM      2  C   UNK     1       1.500   0.000   0.000\n")
-            f.write("ATOM      3  O   UNK     1       2.000   1.000   0.000\n")
-            f.write("CONECT    1    2\n")
-            f.write("CONECT    2    1    3\n")
-            f.write("CONECT    3    2\n")
+            # Generiamo atomi fittizi per visualizzazione
+            radius = 3.0  # Raggio approssimativo della molecola
+            
+            for element, count in elements.items():
+                if count > 0:
+                    # Genera posizioni per questo elemento
+                    for i in range(count):
+                        # Posizione approssimativa basata su un pattern circolare
+                        angle = 2 * math.pi * i / max(count, 1)
+                        x = center_x + radius * math.cos(angle)
+                        y = center_y + radius * math.sin(angle)
+                        z = center_z + random.uniform(-1.0, 1.0)
+                        
+                        # Aggiungi l'atomo al file PDB
+                        f.write(f"ATOM  {atom_id:5d}  {element}   UNK     1    {x:8.3f}{y:8.3f}{z:8.3f}  1.00  0.00          {element}  \n")
+                        atoms.append((atom_id, element, x, y, z))
+                        atom_id += 1
+            
+            # Aggiungi connessioni semplici tra atomi vicini
+            for i, (id1, el1, x1, y1, z1) in enumerate(atoms):
+                f.write(f"CONECT{id1:5d}")
+                # Connetti a massimo 4 atomi vicini
+                connections = 0
+                for j, (id2, el2, x2, y2, z2) in enumerate(atoms):
+                    if i != j and connections < 4:
+                        # Calcola la distanza
+                        dist = math.sqrt((x2-x1)**2 + (y2-y1)**2 + (z2-z1)**2)
+                        if dist < radius:  # Se abbastanza vicino
+                            f.write(f"{id2:5d}")
+                            connections += 1
+                f.write("\n")
+            
             f.write("END\n")
         
-        logger.info(f"File PDB creato con successo: {output_path}")
+        logger.info(f"File PDB fittizio creato con successo: {output_path}")
         return True
         
     except Exception as e:
-        logger.error(f"Errore nella conversione SMILES to 3D: {str(e)}")
+        logger.error(f"Errore nella generazione del file PDB: {str(e)}")
         return False
 
-def show_3d(pdb_file):
+def smiles_to_svg(smiles, output_path=None):
     """
-    Funzione di utilità per visualizzare un modello 3D (utilizzata in contesti diversi dall'API).
-    
-    In un'implementazione reale, questa funzione potrebbe utilizzare py3Dmol:
-    
-    import py3Dmol
-    view = py3Dmol.view(width=400, height=400)
-    with open(pdb_file, 'r') as f:
-        view.addModel(f.read(), 'pdb')
-    view.setStyle({'stick':{}})
-    view.zoomTo()
-    view.show()
+    Crea un SVG semplice per la molecola.
     
     Args:
-        pdb_file (str): Percorso al file PDB da visualizzare
+        smiles (str): Stringa SMILES della molecola
+        output_path (str, optional): Percorso di output per il file SVG
+        
+    Returns:
+        str: SVG della molecola o percorso del file se output_path è specificato
     """
-    logger.info(f"Visualizzazione file PDB: {pdb_file}")
-    logger.info("Nota: in un'applicazione reale, qui verrebbe utilizzato py3Dmol o un visualizzatore simile")
+    try:
+        # Crea un SVG semplice
+        svg = f'''<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200">
+  <circle cx="100" cy="100" r="50" fill="#f0f0f0" stroke="#555555" stroke-width="2" />
+  <text x="100" y="105" font-family="Arial" font-size="12" text-anchor="middle">{smiles[:20]}</text>
+</svg>'''
+        
+        # Se è specificato un percorso di output, salva il file
+        if output_path:
+            with open(output_path, 'w') as f:
+                f.write(svg)
+            return output_path
+        else:
+            return svg
+            
+    except Exception as e:
+        logger.error(f"Errore nella generazione SVG: {str(e)}")
+        return None
+
+def get_molecule_properties(smiles):
+    """
+    Genera proprietà fittizie di una molecola.
+    
+    Args:
+        smiles (str): Stringa SMILES della molecola
+        
+    Returns:
+        dict: Dizionario con le proprietà molecolari
+    """
+    properties = {}
+    
+    try:
+        # Calcolo basilare e approssimativo (non accurato!)
+        # Conta elementi (molto approssimativo)
+        elements = {'C': 0, 'H': 0, 'O': 0, 'N': 0, 'P': 0, 'S': 0}
+        formula_parts = []
+        
+        for char in smiles:
+            if char in elements:
+                elements[char] += 1
+        
+        # Formula approssimativa
+        for element, count in elements.items():
+            if count > 0:
+                formula_parts.append(f"{element}{count if count > 1 else ''}")
+        
+        properties["formula"] = "".join(formula_parts)
+        
+        # Peso molecolare approssimativo
+        weights = {'C': 12.01, 'H': 1.01, 'O': 16.00, 'N': 14.01, 'P': 30.97, 'S': 32.07}
+        mol_weight = sum(count * weights[element] for element, count in elements.items() if count > 0)
+        
+        properties["exact_mass"] = mol_weight
+        properties["mol_weight"] = mol_weight
+        properties["heavy_atoms"] = sum(count for element, count in elements.items() if element != 'H' and count > 0)
+        properties["rings"] = smiles.count('1') # Approssimativo, non accurato!
+        properties["aromatic_rings"] = smiles.count('c') // 6  # Molto approssimativo!
+        properties["rotatable_bonds"] = len(smiles) // 5  # Totalmente fittizio
+        properties["h_donors"] = elements['O'] + elements['N']  # Approssimativo
+        properties["h_acceptors"] = elements['O'] + elements['N']  # Approssimativo
+        properties["tpsa"] = (elements['O'] + elements['N']) * 20  # Totalmente fittizio
+        properties["logp"] = elements['C'] * 0.5 - elements['O'] * 0.5  # Totalmente fittizio
+        
+    except Exception as e:
+        logger.error(f"Errore nel calcolo delle proprietà molecolari: {str(e)}")
+        
+    return properties
