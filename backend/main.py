@@ -170,7 +170,7 @@ async def generate_3d_model(request: SMILESRequest):
         if len(safe_filename) > 50:
             safe_filename = safe_filename[:50]
         
-        model_filename = f"{safe_filename}.pdb"
+        model_filename = f"{safe_filename}.xyz"  # Cambiato da .pdb a .xyz
         model_path = os.path.join(MOLECULES_DIR, model_filename)
         
         # Controlla se il file esiste già

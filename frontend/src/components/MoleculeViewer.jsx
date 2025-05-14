@@ -48,55 +48,95 @@ const MoleculeViewer = ({ molecule, onClose, loading, error }) => {
         const config = {
           backgroundColor: 'white',
           antialias: true,
-          id: 'molecule-viewer-' + molecule.id
+          id: 'molecule-viewer-' + molecule.id,
+          width: viewerRef.current.clientWidth,
+          height: viewerRef.current.clientHeight
         };
 
         // Creiamo il visualizzatore
         viewer3DRef.current = $3Dmol.createViewer(viewerRef.current, config);
-        
+
         // Carichiamo il modello dal percorso
         fetch(molecule.modelPath)
           .then(response => {
             if (!response.ok) {
               throw new Error(`Errore nella richiesta HTTP: ${response.status}`);
             }
+            console.log(`File scaricato con successo da ${molecule.modelPath}`);
             return response.text();
           })
-          .then(pdbData => {
-            // Aggiungiamo il modello al visualizzatore
-            viewer3DRef.current.addModel(pdbData, "pdb");
-            
+          .then(modelData => {
+            // Log per debug
+            console.log(`Contenuto del file (primi 100 caratteri): ${modelData.substring(0, 100)}...`);
+
+            // Determiniamo se il file è XYZ o PDB in base al contenuto
+            const isXYZ = !modelData.includes("ATOM") && !modelData.includes("HETATM");
+
+            if (isXYZ) {
+              // Parsing di un file XYZ
+              console.log("Rilevato file in formato XYZ");
+
+              try {
+                // In 3Dmol.js, possiamo passare direttamente il contenuto del file XYZ
+                // Non abbiamo bisogno di manipolarlo manualmente, basta specificare il formato corretto
+                viewer3DRef.current.addModel(modelData, "xyz");
+                console.log("Modello XYZ aggiunto con successo");
+              } catch (err) {
+                console.error("Errore nell'aggiunta del modello XYZ:", err);
+
+                // Fallback: proviamo a fare il parsing manualmente
+                const lines = modelData.split('\n');
+                const numAtoms = parseInt(lines[0].trim(), 10);
+                console.log(`Numero di atomi: ${numAtoms}`);
+
+                // Formatiamo manualmente il file xyz in un formato che 3Dmol.js può leggere
+                let formattedXYZ = `${numAtoms}\n${lines[1]}\n`;
+                for (let i = 2; i < numAtoms + 2 && i < lines.length; i++) {
+                  formattedXYZ += lines[i].trim() + '\n';
+                }
+
+                console.log("XYZ formattato manualmente:", formattedXYZ.substring(0, 200) + "...");
+                viewer3DRef.current.addModel(formattedXYZ, "xyz");
+              }
+            } else {
+              // Addizione di un modello PDB standard
+              console.log("Rilevato file in formato PDB");
+              viewer3DRef.current.addModel(modelData, "pdb");
+            }
+
             // Impostiamo lo stile di visualizzazione
             viewer3DRef.current.setStyle({}, {
-              stick: {}, // Visualizzazione a bastoncini
-              sphere: { scale: 0.3 } // Piccole sfere per gli atomi
+              stick: { radius: 0.15 }, // Bastoncini sottili come richiesto
+              sphere: { scale: 0.25 }  // Piccole sfere per gli atomi come richiesto
             });
-            
-            // Aggiungiamo etichette agli atomi
+
+            // Aggiungiamo etichette solo agli atomi che non sono carbonio o idrogeno
             const atoms = viewer3DRef.current.getModel().selectedAtoms({});
             for (let i = 0; i < atoms.length; i++) {
               const atom = atoms[i];
-              if (atom.atom !== "H") { // Evitiamo di etichettare gli idrogeni
+              if (atom.atom !== "C" && atom.atom !== "H") { // Evitiamo di etichettare carbonio e idrogeno, come nel codice Python
                 viewer3DRef.current.addLabel(atom.atom, {
                   position: { x: atom.x, y: atom.y, z: atom.z },
                   backgroundColor: "#FFFFFF",
-                  backgroundOpacity: 0.5,
+                  backgroundOpacity: 0.7,
                   fontColor: "black",
                   fontSize: 12
                 });
               }
             }
-            
-            // Impostiamo la vista
+
+            // Impostiamo la vista per centrare perfettamente la molecola
             viewer3DRef.current.zoomTo();
-            
+            // Aggiungiamo un margine per migliorare la visualizzazione
+            viewer3DRef.current.zoom(0.8);
+
             // Rendiamo il modello
             viewer3DRef.current.render();
-            
+
             // Aggiungiamo controlli per la rotazione
             viewer3DRef.current.rotate(30, { x: 1, y: 0, z: 0 });
             viewer3DRef.current.render();
-            
+
             // Animazione iniziale
             let rotate = 0;
             const animationInterval = setInterval(() => {
@@ -153,10 +193,10 @@ const MoleculeViewer = ({ molecule, onClose, loading, error }) => {
     <div className="molecule-viewer-overlay">
       <div className="molecule-viewer-container">
         <div className="molecule-viewer-header">
-          <h3>Visualizzazione 3D</h3>
+                <p><strong>SMILES:</strong> {molecule.smiles}</p>
           <button className="close-button" onClick={onClose}>×</button>
         </div>
-        
+
         <div className="molecule-viewer-content">
           {loading ? (
             <div className="loading-container">
@@ -170,14 +210,7 @@ const MoleculeViewer = ({ molecule, onClose, loading, error }) => {
             </div>
           ) : (
             <>
-              <div className="molecule-details">
-                <p><strong>SMILES:</strong> {molecule.smiles}</p>
-                {molecule.name && <p><strong>Nome:</strong> {molecule.name}</p>}
-                {molecule.formula && <p><strong>Formula:</strong> {molecule.formula}</p>}
-                {molecule.properties && molecule.properties.mol_weight && 
-                  <p><strong>Peso molecolare:</strong> {molecule.properties.mol_weight.toFixed(2)} g/mol</p>
-                }
-              </div>
+              
               <div className="viewer-container" ref={viewerRef} id={`molecule-viewer-container-${molecule.id}`}>
                 {/* Il visualizzatore 3D verrà inserito qui */}
                 {typeof $3Dmol === 'undefined' && renderFallbackViewer()}
