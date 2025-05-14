@@ -1,7 +1,7 @@
 /* FileSelector.css */
 .file-selector {
   background-color: var(--surface-color);
-  padding: 1.5rem;
+  padding: 0.75rem;
   border-radius: 12px;
   box-shadow: 0 2px 8px var(--shadow-color);
   margin-bottom: 2rem;
@@ -19,7 +19,7 @@
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 1rem;
+  gap: 1.5rem;
   flex: 1;
 }
 
