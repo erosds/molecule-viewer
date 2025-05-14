@@ -45,7 +45,11 @@ function App() {
         ) : error ? (
           <div className="error">{error}</div>
         ) : molecules.length > 0 ? (
-          <MoleculeGrid molecules={molecules} />
+          <>
+            <MoleculeGrid molecules={molecules} />
+          </>
+        ) : selectedFile ? (
+          <div className="error">Nessuna molecola SMILES riconosciuta nel file selezionato</div>
         ) : (
           <div className="instructions">
             Seleziona un file CSV contenente strutture molecolari SMILES per iniziare

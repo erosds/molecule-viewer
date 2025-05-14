@@ -10,7 +10,7 @@ const MoleculeGrid = ({ molecules }) => {
   const [modelError, setModelError] = useState(null);
   
   // Configurazione per il numero di molecole visualizzate
-  const itemsPerRow = 5;
+  const itemsPerRow = 5; // Modificato a 5 molecole per riga
   const rowsPerPage = 6;
   const itemsPerPage = itemsPerRow * rowsPerPage;
   
@@ -81,6 +81,7 @@ const MoleculeGrid = ({ molecules }) => {
     <div className="molecule-grid-container">
       <div className="molecule-grid-info">
         <p>
+          <strong>Totale molecole riconosciute: {molecules.length}</strong> | 
           Visualizzazione di {Math.min(itemsPerPage, molecules.length - (currentPage - 1) * itemsPerPage)} molecole 
           (pagina {currentPage} di {totalPages})
         </p>
