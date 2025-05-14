@@ -1,0 +1,55 @@
+/* FileSelector.css */
+.file-selector {
+  background-color: var(--surface-color);
+  padding: 1.5rem;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px var(--shadow-color);
+  margin-bottom: 2rem;
+}
+
+.file-selector-container {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.file-selector-container label {
+  font-weight: 500;
+  color: var(--text-primary);
+  flex: 0 0 auto;
+}
+
+.file-selector-dropdown {
+  appearance: none;
+  background-color: transparent;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  font-size: 1rem;
+  color: var(--text-primary);
+  width: 100%;
+  max-width: 300px;
+  cursor: pointer;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  background-size: 1rem;
+  flex: 1;
+}
+
+.file-selector-dropdown:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 2px rgba(0, 122, 255, 0.15);
+}
+
+.file-selector-loading,
+.file-selector-error {
+  padding: 0.75rem;
+  flex: 1;
+}
+
+.file-selector-error {
+  color: #ff3b30;
+}
