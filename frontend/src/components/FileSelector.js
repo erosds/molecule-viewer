@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import './FileSelector.css';
 
-const FileSelector = ({ onSelectFile, selectedFile }) => {
+const FileSelector = ({ onSelectFile, selectedFile, type = "main", label }) => {
   const [availableFiles, setAvailableFiles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -34,7 +34,7 @@ const FileSelector = ({ onSelectFile, selectedFile }) => {
   return (
     <div className="file-selector">
       <div className="file-selector-container">
-        <label htmlFor="csv-file">Seleziona un file CSV:</label>
+        <label htmlFor={`csv-file-${type}`}>{label || "Seleziona un file CSV:"}</label>
         {loading ? (
           <div className="file-selector-loading">Caricamento file disponibili...</div>
         ) : error ? (
@@ -45,7 +45,7 @@ const FileSelector = ({ onSelectFile, selectedFile }) => {
           </div>
         ) : (
           <select 
-            id="csv-file" 
+            id={`csv-file-${type}`} 
             value={selectedFile || ''} 
             onChange={handleFileChange}
             className="file-selector-dropdown"

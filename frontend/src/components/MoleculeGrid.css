@@ -28,6 +28,27 @@
   gap: 1rem;
 }
 
+/* Aggiungere questo al file MoleculeGrid.css */
+.new-molecules {
+  color: #008b0c;
+  font-weight: 500;
+}
+
+/* Aggiungere questo al file MoleculeGrid.css */
+.unique-molecules {
+  color: #002c8b;
+  font-weight: 500;
+}
+
+.new-molecules strong {
+  color: #008b0c; /* Un colore arancione per evidenziare le molecole nuove */
+}
+
+/* Aggiungere questo per dare più spazio tra i selettori di file */
+.file-selector + .file-selector {
+  margin-top: -1rem; /* Riduce leggermente lo spazio tra i due selettori */
+}
+
 @media (max-width: 1200px) {
   .molecule-grid {
     grid-template-columns: repeat(5, 1fr);
