@@ -50,6 +50,8 @@ class CoordinationFilterRequest(BaseModel):
     csv_file: str
     min_coordination: int = 0
     max_coordination: int = 12
+    selected_metals: Optional[List[str]] = None  # Nuova opzione per filtrare per metalli
+
 
 class CoordinationAnalysisResponse(BaseModel):
     total_molecules: int
@@ -57,6 +59,13 @@ class CoordinationAnalysisResponse(BaseModel):
     filtered_molecules: int
     coordination_distribution: Dict[int, int]  # numero_coordinazione -> conteggio
     molecules: List[Dict]
+    
+class CoordinationFilterRequest(BaseModel):
+    csv_file: str
+    min_coordination: int = 0
+    max_coordination: int = 12
+    selected_metals: Optional[List[str]] = None  # Nuova opzione per filtrare per metalli
+
 
 # Funzione helper per validazione veloce di una singola molecola
 def validate_single_smiles(smiles: str) -> bool:
@@ -311,7 +320,7 @@ async def validate_molecules_bulk(request: ValidationRequest):
 @app.post("/api/filter-by-coordination", response_model=CoordinationAnalysisResponse)
 async def filter_molecules_by_coordination_endpoint(request: CoordinationFilterRequest):
     """
-    Filtra le molecole di un file CSV in base al numero di coordinazione metallica.
+    Filtra le molecole di un file CSV in base al numero di coordinazione metallica e tipo di metallo.
     """
     try:
         # Carica le molecole dal file CSV
@@ -344,8 +353,8 @@ async def filter_molecules_by_coordination_endpoint(request: CoordinationFilterR
                             "smiles": smiles
                         })
         
-        # Importa la funzione di filtro
-        from molecule_utils import filter_molecules_by_coordination, analyze_metal_coordination
+        # Importa le funzioni di filtro
+        from molecule_utils import filter_molecules_by_coordination, analyze_metal_coordination, filter_molecules_by_metal_and_coordination
         
         # Analizza tutte le molecole per ottenere statistiche
         molecules_with_metals = 0
@@ -358,19 +367,28 @@ async def filter_molecules_by_coordination_endpoint(request: CoordinationFilterR
                 max_coord = coord_info['max_coordination']
                 coordination_distribution[max_coord] = coordination_distribution.get(max_coord, 0) + 1
         
-        # Applica il filtro
-        filtered_molecules = filter_molecules_by_coordination(
-            molecules, 
-            request.min_coordination, 
-            request.max_coordination
-        )
+        # Applica il filtro (coordinazione + metalli se specificati)
+        if request.selected_metals:
+            filtered_molecules = filter_molecules_by_metal_and_coordination(
+                molecules, 
+                request.min_coordination, 
+                request.max_coordination,
+                request.selected_metals
+            )
+        else:
+            filtered_molecules = filter_molecules_by_coordination(
+                molecules, 
+                request.min_coordination, 
+                request.max_coordination
+            )
         
         return CoordinationAnalysisResponse(
             total_molecules=len(molecules),
             molecules_with_metals=molecules_with_metals,
             filtered_molecules=len(filtered_molecules),
             coordination_distribution=coordination_distribution,
-            molecules=filtered_molecules
+            molecules=filtered_molecules,
+            selected_metals=request.selected_metals if request.selected_metals else []
         )
         
     except HTTPException as he:
@@ -378,7 +396,7 @@ async def filter_molecules_by_coordination_endpoint(request: CoordinationFilterR
     except Exception as e:
         logger.error(f"Errore nel filtro di coordinazione: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Errore interno: {str(e)}")
-
+    
 @app.get("/api/coordination-stats/{csv_file}")
 async def get_coordination_statistics(csv_file: str):
     """

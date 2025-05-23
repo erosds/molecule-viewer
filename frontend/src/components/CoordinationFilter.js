@@ -1,4 +1,4 @@
-// Crea il file frontend/src/components/CoordinationFilter.js
+// Aggiorna il file frontend/src/components/CoordinationFilter.js
 
 import React, { useState, useEffect } from 'react';
 import './CoordinationFilter.css';
@@ -7,6 +7,7 @@ const CoordinationFilter = ({ selectedFile, onFilterApplied, onStatsUpdate }) =>
   const [coordinationStats, setCoordinationStats] = useState(null);
   const [minCoordination, setMinCoordination] = useState(0);
   const [maxCoordination, setMaxCoordination] = useState(12);
+  const [selectedMetals, setSelectedMetals] = useState([]); // Nuovo stato per metalli selezionati
   const [isLoading, setIsLoading] = useState(false);
   const [isFiltering, setIsFiltering] = useState(false);
   const [error, setError] = useState(null);
@@ -17,6 +18,7 @@ const CoordinationFilter = ({ selectedFile, onFilterApplied, onStatsUpdate }) =>
       loadCoordinationStats();
     } else {
       setCoordinationStats(null);
+      setSelectedMetals([]);  // Reset metalli selezionati
     }
   }, [selectedFile]);
 
@@ -39,6 +41,9 @@ const CoordinationFilter = ({ selectedFile, onFilterApplied, onStatsUpdate }) =>
         setMaxCoordination(stats.coordination_range.max);
       }
       
+      // Reset metalli selezionati quando cambiano le statistiche
+      setSelectedMetals([]);
+      
       // Comunica le statistiche al componente padre
       if (onStatsUpdate) {
         onStatsUpdate(stats);
@@ -58,16 +63,23 @@ const CoordinationFilter = ({ selectedFile, onFilterApplied, onStatsUpdate }) =>
     setError(null);
     
     try {
+      const requestBody = {
+        csv_file: selectedFile,
+        min_coordination: minCoordination,
+        max_coordination: maxCoordination
+      };
+      
+      // Aggiungi i metalli selezionati solo se ce ne sono
+      if (selectedMetals.length > 0) {
+        requestBody.selected_metals = selectedMetals;
+      }
+      
       const response = await fetch('/api/filter-by-coordination', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          csv_file: selectedFile,
-          min_coordination: minCoordination,
-          max_coordination: maxCoordination
-        }),
+        body: JSON.stringify(requestBody),
       });
 
       if (!response.ok) {
@@ -97,6 +109,30 @@ const CoordinationFilter = ({ selectedFile, onFilterApplied, onStatsUpdate }) =>
       setMinCoordination(0);
       setMaxCoordination(12);
     }
+    setSelectedMetals([]);  // Reset anche i metalli selezionati
+  };
+
+  // Funzione per gestire la selezione/deselezione dei metalli
+  const toggleMetal = (metal) => {
+    setSelectedMetals(prev => {
+      if (prev.includes(metal)) {
+        return prev.filter(m => m !== metal);
+      } else {
+        return [...prev, metal];
+      }
+    });
+  };
+
+  // Funzione per selezionare tutti i metalli
+  const selectAllMetals = () => {
+    if (coordinationStats && coordinationStats.metal_elements_found) {
+      setSelectedMetals([...coordinationStats.metal_elements_found]);
+    }
+  };
+
+  // Funzione per deselezionare tutti i metalli
+  const deselectAllMetals = () => {
+    setSelectedMetals([]);
   };
 
   if (!selectedFile) {
@@ -106,7 +142,7 @@ const CoordinationFilter = ({ selectedFile, onFilterApplied, onStatsUpdate }) =>
   return (
     <div className="coordination-filter">
       <div className="coordination-filter-header">
-        <h3>🧬 Filtro per Numero di Coordinazione</h3>
+        <h3>🧬 Filtro per Numero di Coordinazione e Metalli</h3>
         <button 
           className="refresh-stats-button"
           onClick={loadCoordinationStats}
@@ -143,18 +179,61 @@ const CoordinationFilter = ({ selectedFile, onFilterApplied, onStatsUpdate }) =>
                 <div className="stat-label">Range Coordinazione</div>
               </div>
             </div>
+          </div>
 
-            {coordinationStats.metal_elements_found.length > 0 && (
-              <div className="metal-elements">
-                <span className="elements-label">Metalli trovati:</span>
-                <div className="elements-list">
-                  {coordinationStats.metal_elements_found.map(element => (
-                    <span key={element} className="element-tag">{element}</span>
-                  ))}
+          {/* Sezione per la selezione dei metalli */}
+          {coordinationStats.metal_elements_found.length > 0 && (
+            <div className="metal-selection-section">
+              <div className="metal-selection-header">
+                <h4>Seleziona Metalli da Includere:</h4>
+                <div className="metal-selection-controls">
+                  <button 
+                    className="metal-control-button select-all"
+                    onClick={selectAllMetals}
+                    disabled={isFiltering}
+                  >
+                    ✓ Tutti
+                  </button>
+                  <button 
+                    className="metal-control-button deselect-all"
+                    onClick={deselectAllMetals}
+                    disabled={isFiltering}
+                  >
+                    ✗ Nessuno
+                  </button>
                 </div>
               </div>
-            )}
-          </div>
+              
+              <div className="metal-selection-grid">
+                {coordinationStats.metal_elements_found.map(metal => (
+                  <button
+                    key={metal}
+                    className={`metal-toggle ${selectedMetals.includes(metal) ? 'selected' : ''}`}
+                    onClick={() => toggleMetal(metal)}
+                    disabled={isFiltering}
+                  >
+                    <span className="metal-symbol">{metal}</span>
+                    {selectedMetals.includes(metal) && <span className="check-mark">✓</span>}
+                  </button>
+                ))}
+              </div>
+              
+              {selectedMetals.length > 0 && (
+                <div className="selected-metals-info">
+                  <span className="selected-label">
+                    Metalli selezionati ({selectedMetals.length}):
+                  </span>
+                  <div className="selected-metals-list">
+                    {selectedMetals.map(metal => (
+                      <span key={metal} className="selected-metal-tag">
+                        {metal}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
 
           <div className="coordination-filter-controls">
             <div className="filter-inputs">

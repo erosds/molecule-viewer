@@ -148,6 +148,53 @@ def filter_molecules_by_coordination(molecules_data: list, min_coordination: int
     
     return filtered_molecules
 
+def filter_molecules_by_metal_and_coordination(molecules_data: list, min_coordination: int = 0, max_coordination: int = 12, selected_metals: list = None):
+    """
+    Filtra una lista di molecole in base al numero di coordinazione metallica e al tipo di metallo.
+    
+    Args:
+        molecules_data (list): Lista di dizionari con dati delle molecole
+        min_coordination (int): Numero minimo di legami
+        max_coordination (int): Numero massimo di legami
+        selected_metals (list): Lista di simboli metallici da includere (es. ['Fe', 'Cu', 'Zn'])
+        
+    Returns:
+        list: Lista filtrata di molecole con info aggiuntive sui metalli
+    """
+    filtered_molecules = []
+    
+    for molecule in molecules_data:
+        smiles = molecule.get('smiles', '')
+        if not smiles:
+            continue
+            
+        # Analizza la coordinazione metallica
+        coordination_info = analyze_metal_coordination(smiles)
+        
+        # Verifica se la molecola soddisfa i criteri di filtro
+        if coordination_info['has_metal']:
+            max_coord = coordination_info['max_coordination']
+            
+            # Verifica il numero di coordinazione
+            if min_coordination <= max_coord <= max_coordination:
+                # Se sono specificati metalli da filtrare, verifica che almeno uno sia presente
+                if selected_metals:
+                    molecule_metals = [metal['symbol'] for metal in coordination_info['metal_atoms']]
+                    has_selected_metal = any(metal in selected_metals for metal in molecule_metals)
+                    
+                    if has_selected_metal:
+                        # Aggiungi le informazioni sulla coordinazione alla molecola
+                        molecule_copy = molecule.copy()
+                        molecule_copy['coordination_info'] = coordination_info
+                        filtered_molecules.append(molecule_copy)
+                else:
+                    # Nessun filtro per metalli specifici, includi tutte le molecole che soddisfano la coordinazione
+                    molecule_copy = molecule.copy()
+                    molecule_copy['coordination_info'] = coordination_info
+                    filtered_molecules.append(molecule_copy)
+    
+    return filtered_molecules
+
 def smiles_to_2d_image(smiles, output_path=None, size=(300, 300)):
     """
     Converte una stringa SMILES in un'immagine 2D e la salva o restituisce come bytes.

@@ -1,4 +1,4 @@
-/* Crea il file frontend/src/components/CoordinationFilter.css */
+/* CoordinationFilter.css - File CSS Completo */
 
 .coordination-filter {
   background-color: var(--surface-color);
@@ -126,6 +126,7 @@
   padding: 0.75rem;
   background-color: rgba(0, 122, 255, 0.05);
   border-radius: 8px;
+  margin-bottom: 1rem;
 }
 
 .elements-label {
@@ -148,6 +149,166 @@
   font-size: 0.8rem;
   font-weight: 600;
   font-family: monospace;
+}
+
+/* Sezione selezione metalli */
+.metal-selection-section {
+  background-color: rgba(40, 167, 69, 0.05);
+  border: 1px solid rgba(40, 167, 69, 0.2);
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin: 1.5rem 0;
+}
+
+.metal-selection-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.metal-selection-header h4 {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #28a745;
+  margin: 0;
+}
+
+.metal-selection-controls {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.metal-control-button {
+  background-color: transparent;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 0.4rem 0.8rem;
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: var(--text-secondary);
+}
+
+.metal-control-button.select-all {
+  color: #28a745;
+  border-color: rgba(40, 167, 69, 0.3);
+}
+
+.metal-control-button.select-all:hover:not(:disabled) {
+  background-color: rgba(40, 167, 69, 0.1);
+  border-color: #28a745;
+}
+
+.metal-control-button.deselect-all {
+  color: #dc3545;
+  border-color: rgba(220, 53, 69, 0.3);
+}
+
+.metal-control-button.deselect-all:hover:not(:disabled) {
+  background-color: rgba(220, 53, 69, 0.1);
+  border-color: #dc3545;
+}
+
+.metal-control-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.metal-selection-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.metal-toggle {
+  background-color: var(--surface-color);
+  border: 2px solid var(--border-color);
+  border-radius: 8px;
+  padding: 1rem 0.5rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  position: relative;
+  min-height: 60px;
+  justify-content: center;
+}
+
+.metal-toggle:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.metal-toggle.selected {
+  background: linear-gradient(135deg, #28a745, #20c997);
+  border-color: #28a745;
+  color: white;
+  box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
+}
+
+.metal-toggle:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none !important;
+}
+
+.metal-symbol {
+  font-family: 'Courier New', monospace;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.check-mark {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  font-size: 0.8rem;
+  background-color: rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.selected-metals-info {
+  background-color: rgba(255, 255, 255, 0.7);
+  border-radius: 8px;
+  padding: 1rem;
+  border: 1px solid rgba(40, 167, 69, 0.2);
+}
+
+.selected-label {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #28a745;
+  display: block;
+  margin-bottom: 0.5rem;
+}
+
+.selected-metals-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.selected-metal-tag {
+  background: linear-gradient(135deg, #28a745, #20c997);
+  color: white;
+  padding: 0.3rem 0.6rem;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  font-family: 'Courier New', monospace;
+  box-shadow: 0 2px 4px rgba(40, 167, 69, 0.2);
 }
 
 .coordination-filter-controls {
@@ -310,6 +471,73 @@
   text-align: right;
 }
 
+/* Stili per le informazioni del filtro */
+.filter-info {
+  background: linear-gradient(135deg, rgba(0, 122, 255, 0.1), rgba(0, 122, 255, 0.05));
+  border: 1px solid rgba(0, 122, 255, 0.2);
+  border-radius: 12px;
+  padding: 1rem;
+  margin: 1rem 0;
+}
+
+.filter-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.filter-label {
+  font-weight: 600;
+  color: var(--primary-color);
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.metal-filter-info {
+  background-color: rgba(40, 167, 69, 0.1);
+  color: #28a745;
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  border: 1px solid rgba(40, 167, 69, 0.2);
+  margin-left: 0.5rem;
+}
+
+.filter-stats {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  background-color: rgba(255, 255, 255, 0.7);
+  padding: 0.3rem 0.8rem;
+  border-radius: 6px;
+  border: 1px solid rgba(0, 122, 255, 0.2);
+}
+
+.reset-filter-button {
+  background-color: rgba(255, 59, 48, 0.1);
+  color: #ff3b30;
+  border: 1px solid rgba(255, 59, 48, 0.3);
+  border-radius: 6px;
+  padding: 0.4rem 0.8rem;
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.reset-filter-button:hover {
+  background-color: rgba(255, 59, 48, 0.15);
+  transform: translateY(-1px);
+}
+
 /* Responsive design */
 @media (max-width: 768px) {
   .stats-grid {
@@ -335,5 +563,54 @@
   
   .bar-fill {
     max-width: 150px;
+  }
+  
+  .metal-selection-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .metal-selection-controls {
+    justify-content: center;
+  }
+  
+  .metal-selection-grid {
+    grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
+    gap: 0.5rem;
+  }
+  
+  .metal-toggle {
+    padding: 0.75rem 0.25rem;
+    min-height: 50px;
+  }
+  
+  .metal-symbol {
+    font-size: 0.9rem;
+  }
+  
+  .selected-metals-info {
+    text-align: center;
+  }
+  
+  .filter-summary {
+    flex-direction: column;
+    align-items: stretch;
+    text-align: center;
+  }
+  
+  .filter-label {
+    justify-content: center;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  
+  .metal-filter-info {
+    margin-left: 0;
+    align-self: center;
+  }
+  
+  .reset-filter-button {
+    align-self: center;
+    justify-content: center;
   }
 }
