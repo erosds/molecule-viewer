@@ -1,6 +1,9 @@
+// Modifica il file frontend/src/App.js
+
 import React, { useState } from 'react';
 import FileSelector from './components/FileSelector';
 import MoleculeGrid from './components/MoleculeGrid';
+import ValidationButton from './components/ValidationButton';
 import './App.css';
 
 function App() {
@@ -11,12 +14,16 @@ function App() {
 
   const [referenceFile, setReferenceFile] = useState(null);
   const [referenceMolecules, setReferenceMolecules] = useState([]);
-  const [newMolecules, setNewMolecules] = useState(0); // per tenere traccia del numero di molecole nuove
+  const [newMolecules, setNewMolecules] = useState(0);
+  
+  // Nuovo stato per i risultati della validazione
+  const [validationResults, setValidationResults] = useState(null);
 
   const handleFileSelect = (file) => {
     setSelectedFile(file);
     setLoading(true);
     setError(null);
+    setValidationResults(null); // Reset validation results quando si cambia file
 
     fetch(`/api/molecules/${file}`)
       .then(response => {
@@ -85,47 +92,61 @@ function App() {
     setNewMolecules(newCount);
   };
 
+  // Nuovo handler per i risultati della validazione
+  const handleValidationComplete = (results) => {
+    setValidationResults(results);
+  };
 
   return (
-  <div className="app">
-    <header className="app-header">
-      <h1>Visualizzatore Molecole</h1>
-    </header>
-    <main className="app-content">
-      {/* Selettore del file di riferimento */}
-      <FileSelector 
-        onSelectFile={handleReferenceFileSelect} 
-        selectedFile={referenceFile} 
-        type="reference"
-        label="Seleziona il file CSV di molecole di riferimento:"
-      />
-      
-      {/* Selettore del file principale */}
-      <FileSelector 
-        onSelectFile={handleFileSelect} 
-        selectedFile={selectedFile} 
-        type="main"
-        label="Seleziona un file CSV di molecole da visualizzare:"
-      />
-      
-      {loading ? (
-        <div className="loading">Caricamento molecole...</div>
-      ) : error ? (
-        <div className="error">{error}</div>
-      ) : molecules.length > 0 ? (
-        <>
-          <MoleculeGrid molecules={molecules} newMoleculesCount={newMolecules} />
-        </>
-      ) : selectedFile ? (
-        <div className="error">Nessuna molecola SMILES riconosciuta nel file selezionato</div>
-      ) : (
-        <div className="instructions">
-          Seleziona un file CSV contenente strutture molecolari SMILES per iniziare
-        </div>
-      )}
-    </main>
-  </div>
-);
+    <div className="app">
+      <header className="app-header">
+        <h1>Visualizzatore Molecole</h1>
+      </header>
+      <main className="app-content">
+        {/* Selettore del file di riferimento */}
+        <FileSelector 
+          onSelectFile={handleReferenceFileSelect} 
+          selectedFile={referenceFile} 
+          type="reference"
+          label="Seleziona il file CSV di molecole di riferimento:"
+        />
+        
+        {/* Selettore del file principale */}
+        <FileSelector 
+          onSelectFile={handleFileSelect} 
+          selectedFile={selectedFile} 
+          type="main"
+          label="Seleziona un file CSV di molecole da visualizzare:"
+        />
+        
+        {loading ? (
+          <div className="loading">Caricamento molecole...</div>
+        ) : error ? (
+          <div className="error">{error}</div>
+        ) : molecules.length > 0 ? (
+          <>
+            {/* Pulsante di validazione delle strutture 3D */}
+            <ValidationButton 
+              molecules={molecules} 
+              onValidationComplete={handleValidationComplete}
+            />
+            
+            <MoleculeGrid 
+              molecules={molecules} 
+              newMoleculesCount={newMolecules}
+              validationResults={validationResults}
+            />
+          </>
+        ) : selectedFile ? (
+          <div className="error">Nessuna molecola SMILES riconosciuta nel file selezionato</div>
+        ) : (
+          <div className="instructions">
+            Seleziona un file CSV contenente strutture molecolari SMILES per iniziare
+          </div>
+        )}
+      </main>
+    </div>
+  );
 }
 
 export default App;

@@ -30,6 +30,50 @@ os.makedirs(CSV_DIR, exist_ok=True)
 os.makedirs(MOLECULES_DIR, exist_ok=True)
 os.makedirs(IMAGES_DIR, exist_ok=True)
 
+from typing import Dict
+from concurrent.futures import ThreadPoolExecutor
+import threading
+
+# Aggiungi questo modello dopo gli altri
+class ValidationRequest(BaseModel):
+    smiles_list: List[str]
+
+class ValidationResponse(BaseModel):
+    total_molecules: int
+    valid_molecules: int
+    invalid_molecules: int
+    valid_smiles: List[str]
+    invalid_smiles: List[str]
+    processing_time: float
+
+# Funzione helper per validazione veloce di una singola molecola
+def validate_single_smiles(smiles: str) -> bool:
+    """
+    Validazione veloce di un SMILES senza generare file 3D.
+    Verifica solo se RDKit può creare una molecola valida.
+    """
+    try:
+        from rdkit import Chem
+        from rdkit.Chem import AllChem
+        
+        # Conversione da SMILES a molecola RDKit
+        mol = Chem.MolFromSmiles(smiles)
+        if mol is None:
+            return False
+            
+        # Aggiunta degli idrogeni
+        mol = Chem.AddHs(mol)
+        
+        # Prova a generare una conformazione 3D (senza salvarla)
+        result = AllChem.EmbedMolecule(mol, AllChem.ETKDG())
+        
+        # Se result è -1, la conformazione non è stata generata
+        return result != -1
+        
+    except Exception as e:
+        logger.error(f"Errore nella validazione SMILES {smiles}: {str(e)}")
+        return False
+
 # Modelli di dati
 class SMILESRequest(BaseModel):
     smiles: str
@@ -193,6 +237,63 @@ async def generate_3d_model(request: SMILESRequest):
         raise he
     except Exception as e:
         logger.error(f"Errore nella generazione del modello 3D: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Errore interno: {str(e)}")
+    
+@app.post("/api/validate-molecules", response_model=ValidationResponse)
+async def validate_molecules_bulk(request: ValidationRequest):
+    """
+    Valida rapidamente una lista di SMILES per verificare
+    quali possono generare strutture 3D valide.
+    """
+    import time
+    start_time = time.time()
+    
+    try:
+        if not request.smiles_list:
+            raise HTTPException(status_code=400, detail="Lista SMILES vuota")
+        
+        valid_smiles = []
+        invalid_smiles = []
+        
+        # Utilizziamo ThreadPoolExecutor per parallelizzare le validazioni
+        # Limitiamo il numero di thread per evitare sovraccarico
+        max_workers = min(4, len(request.smiles_list))
+        
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            # Mappa ogni SMILES al suo future
+            future_to_smiles = {
+                executor.submit(validate_single_smiles, smiles): smiles 
+                for smiles in request.smiles_list
+            }
+            
+            # Raccoglie i risultati
+            for future in future_to_smiles:
+                smiles = future_to_smiles[future]
+                try:
+                    is_valid = future.result(timeout=10)  # Timeout di 10 secondi per molecola
+                    if is_valid:
+                        valid_smiles.append(smiles)
+                    else:
+                        invalid_smiles.append(smiles)
+                except Exception as e:
+                    logger.error(f"Errore nella validazione di {smiles}: {str(e)}")
+                    invalid_smiles.append(smiles)
+        
+        processing_time = time.time() - start_time
+        
+        return ValidationResponse(
+            total_molecules=len(request.smiles_list),
+            valid_molecules=len(valid_smiles),
+            invalid_molecules=len(invalid_smiles),
+            valid_smiles=valid_smiles,
+            invalid_smiles=invalid_smiles,
+            processing_time=round(processing_time, 2)
+        )
+        
+    except HTTPException as he:
+        raise he
+    except Exception as e:
+        logger.error(f"Errore nella validazione bulk: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Errore interno: {str(e)}")
 
 # Endpoint per salute dell'API
