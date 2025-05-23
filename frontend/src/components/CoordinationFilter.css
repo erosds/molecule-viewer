@@ -1,0 +1,339 @@
+/* Crea il file frontend/src/components/CoordinationFilter.css */
+
+.coordination-filter {
+  background-color: var(--surface-color);
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 2px 8px var(--shadow-color);
+  margin: 1.5rem 0;
+  border: 1px solid var(--border-color);
+}
+
+.coordination-filter-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.5rem;
+}
+
+.coordination-filter-header h3 {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.refresh-stats-button {
+  background: none;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 1.1rem;
+  color: var(--primary-color);
+  transition: all 0.2s ease;
+}
+
+.refresh-stats-button:hover:not(:disabled) {
+  background-color: rgba(0, 122, 255, 0.1);
+}
+
+.refresh-stats-button:disabled {
+  color: #a0a0a0;
+  cursor: not-allowed;
+}
+
+.coordination-loading,
+.coordination-error {
+  text-align: center;
+  padding: 2rem;
+  border-radius: 8px;
+}
+
+.coordination-loading {
+  color: var(--text-secondary);
+  background-color: rgba(0, 122, 255, 0.05);
+}
+
+.coordination-error {
+  color: #ff3b30;
+  background-color: rgba(255, 59, 48, 0.05);
+}
+
+.coordination-stats {
+  margin-bottom: 1.5rem;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.stat-item {
+  text-align: center;
+  padding: 1rem;
+  border-radius: 8px;
+  border: 2px solid var(--border-color);
+  transition: transform 0.2s ease;
+}
+
+.stat-item:hover {
+  transform: scale(1.02);
+}
+
+.stat-item.metal {
+  border-color: #28a745;
+  background-color: rgba(40, 167, 69, 0.05);
+}
+
+.stat-item.range {
+  border-color: #6f42c1;
+  background-color: rgba(111, 66, 193, 0.05);
+}
+
+.stat-number {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--primary-color);
+  margin-bottom: 0.25rem;
+}
+
+.stat-item.metal .stat-number {
+  color: #28a745;
+}
+
+.stat-item.range .stat-number {
+  color: #6f42c1;
+}
+
+.stat-label {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.metal-elements {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  padding: 0.75rem;
+  background-color: rgba(0, 122, 255, 0.05);
+  border-radius: 8px;
+}
+
+.elements-label {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.elements-list {
+  display: flex;
+  gap: 0.25rem;
+  flex-wrap: wrap;
+}
+
+.element-tag {
+  background-color: var(--primary-color);
+  color: white;
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  font-family: monospace;
+}
+
+.coordination-filter-controls {
+  background-color: rgba(0, 122, 255, 0.03);
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+
+.filter-inputs {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+
+.input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  flex: 1;
+  min-width: 120px;
+}
+
+.input-group label {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.input-group input {
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 0.5rem;
+  font-size: 1rem;
+  background-color: var(--surface-color);
+  color: var(--text-primary);
+  transition: border-color 0.2s ease;
+}
+
+.input-group input:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 2px rgba(0, 122, 255, 0.15);
+}
+
+.filter-buttons {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.filter-button {
+  border: none;
+  border-radius: 8px;
+  padding: 0.75rem 1.5rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 1;
+  justify-content: center;
+  min-width: 130px;
+}
+
+.filter-button.apply {
+  background: linear-gradient(135deg, #007aff, #0056b3);
+  color: white;
+  box-shadow: 0 2px 8px rgba(0, 122, 255, 0.3);
+}
+
+.filter-button.apply:hover:not(:disabled) {
+  background: linear-gradient(135deg, #0056b3, #003d82);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 122, 255, 0.4);
+}
+
+.filter-button.reset {
+  background-color: var(--surface-color);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-color);
+}
+
+.filter-button.reset:hover:not(:disabled) {
+  background-color: rgba(0, 0, 0, 0.05);
+  color: var(--text-primary);
+}
+
+.filter-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none !important;
+}
+
+.filter-spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  border-top-color: white;
+  animation: spin 1s ease-in-out infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.coordination-distribution {
+  margin-top: 1rem;
+  padding: 1rem;
+  background-color: rgba(0, 122, 255, 0.03);
+  border-radius: 8px;
+}
+
+.coordination-distribution h4 {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 1rem;
+}
+
+.distribution-chart {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.distribution-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.bar-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  min-width: 20px;
+  text-align: center;
+}
+
+.bar-fill {
+  height: 20px;
+  min-width: 2px;
+  border-radius: 2px;
+  transition: all 0.3s ease;
+  flex: 1;
+  max-width: 200px;
+}
+
+.bar-count {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  min-width: 30px;
+  text-align: right;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .stats-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .filter-inputs {
+    flex-direction: column;
+  }
+  
+  .filter-buttons {
+    flex-direction: column;
+  }
+  
+  .metal-elements {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .distribution-chart {
+    font-size: 0.9rem;
+  }
+  
+  .bar-fill {
+    max-width: 150px;
+  }
+}

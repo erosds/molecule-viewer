@@ -1,9 +1,10 @@
-// Modifica il file frontend/src/App.js
+// Aggiorna il file frontend/src/App.js
 
 import React, { useState } from 'react';
 import FileSelector from './components/FileSelector';
 import MoleculeGrid from './components/MoleculeGrid';
 import ValidationButton from './components/ValidationButton';
+import CoordinationFilter from './components/CoordinationFilter';
 import './App.css';
 
 function App() {
@@ -16,14 +17,23 @@ function App() {
   const [referenceMolecules, setReferenceMolecules] = useState([]);
   const [newMolecules, setNewMolecules] = useState(0);
   
-  // Nuovo stato per i risultati della validazione
+  // Stato per i risultati della validazione
   const [validationResults, setValidationResults] = useState(null);
+  
+  // Nuovo stato per il filtro di coordinazione
+  const [isFiltered, setIsFiltered] = useState(false);
+  const [originalMolecules, setOriginalMolecules] = useState([]);
+  const [coordinationStats, setCoordinationStats] = useState(null);
+  const [filterInfo, setFilterInfo] = useState(null);
 
   const handleFileSelect = (file) => {
     setSelectedFile(file);
     setLoading(true);
     setError(null);
-    setValidationResults(null); // Reset validation results quando si cambia file
+    setValidationResults(null);
+    setIsFiltered(false); // Reset del filtro quando cambia il file
+    setOriginalMolecules([]);
+    setFilterInfo(null);
 
     fetch(`/api/molecules/${file}`)
       .then(response => {
@@ -34,13 +44,14 @@ function App() {
       })
       .then(parsedMolecules => {
         setMolecules(parsedMolecules);
+        setOriginalMolecules(parsedMolecules); // Salva le molecole originali
         setLoading(false);
 
         // Calcola molecole nuove se il file di riferimento è già caricato
         if (referenceMolecules.length > 0) {
           calculateNewMolecules(parsedMolecules, referenceMolecules);
         } else {
-          setNewMolecules(parsedMolecules.length); // Tutte sono nuove se non c'è riferimento
+          setNewMolecules(parsedMolecules.length);
         }
       })
       .catch(err => {
@@ -80,21 +91,53 @@ function App() {
 
   const calculateNewMolecules = (mainMolecules, refMolecules) => {
     if (!refMolecules.length) {
-      setNewMolecules(mainMolecules.length); // Tutte sono nuove se non c'è riferimento
+      setNewMolecules(mainMolecules.length);
       return;
     }
 
-    // Crea un set degli SMILES di riferimento per una ricerca efficiente
     const referenceSmiles = new Set(refMolecules.map(mol => mol.smiles));
-
-    // Conta quante molecole del set principale non sono nel set di riferimento
     const newCount = mainMolecules.filter(mol => !referenceSmiles.has(mol.smiles)).length;
     setNewMolecules(newCount);
   };
 
-  // Nuovo handler per i risultati della validazione
+  // Handler per i risultati della validazione
   const handleValidationComplete = (results) => {
     setValidationResults(results);
+  };
+
+  // Handler per il filtro di coordinazione
+  const handleFilterApplied = (filteredMolecules, filterResult) => {
+    setMolecules(filteredMolecules);
+    setIsFiltered(true);
+    setFilterInfo(filterResult);
+    setValidationResults(null); // Reset validation quando si applica un filtro
+    
+    // Ricalcola le molecole nuove per il subset filtrato
+    if (referenceMolecules.length > 0) {
+      calculateNewMolecules(filteredMolecules, referenceMolecules);
+    } else {
+      setNewMolecules(filteredMolecules.length);
+    }
+  };
+
+  // Handler per aggiornare le statistiche di coordinazione
+  const handleStatsUpdate = (stats) => {
+    setCoordinationStats(stats);
+  };
+
+  // Funzione per resettare il filtro
+  const resetFilter = () => {
+    setMolecules(originalMolecules);
+    setIsFiltered(false);
+    setFilterInfo(null);
+    setValidationResults(null);
+    
+    // Ricalcola le molecole nuove per il set completo
+    if (referenceMolecules.length > 0) {
+      calculateNewMolecules(originalMolecules, referenceMolecules);
+    } else {
+      setNewMolecules(originalMolecules.length);
+    }
   };
 
   return (
@@ -119,6 +162,38 @@ function App() {
           label="Seleziona un file CSV di molecole da visualizzare:"
         />
         
+        {/* Filtro di coordinazione */}
+        {selectedFile && originalMolecules.length > 0 && (
+          <CoordinationFilter 
+            selectedFile={selectedFile}
+            onFilterApplied={handleFilterApplied}
+            onStatsUpdate={handleStatsUpdate}
+          />
+        )}
+        
+        {/* Informazioni sul filtro applicato */}
+        {isFiltered && filterInfo && (
+          <div className="filter-info">
+            <div className="filter-summary">
+              <span className="filter-label">
+                🔍 Filtro attivo: coordinazione {filterInfo.coordination_distribution ? 
+                  `${Math.min(...Object.keys(filterInfo.coordination_distribution).map(Number))}-${Math.max(...Object.keys(filterInfo.coordination_distribution).map(Number))}` : 
+                  'personalizzata'}
+              </span>
+              <span className="filter-stats">
+                {filterInfo.filtered_molecules} di {filterInfo.total_molecules} molecole
+              </span>
+              <button 
+                className="reset-filter-button"
+                onClick={resetFilter}
+                title="Rimuovi filtro e mostra tutte le molecole"
+              >
+                ✕ Rimuovi filtro
+              </button>
+            </div>
+          </div>
+        )}
+        
         {loading ? (
           <div className="loading">Caricamento molecole...</div>
         ) : error ? (
@@ -138,7 +213,12 @@ function App() {
             />
           </>
         ) : selectedFile ? (
-          <div className="error">Nessuna molecola SMILES riconosciuta nel file selezionato</div>
+          <div className="error">
+            {isFiltered ? 
+              "Nessuna molecola corrisponde ai criteri di filtro selezionati" :
+              "Nessuna molecola SMILES riconosciuta nel file selezionato"
+            }
+          </div>
         ) : (
           <div className="instructions">
             Seleziona un file CSV contenente strutture molecolari SMILES per iniziare

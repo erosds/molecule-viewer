@@ -45,6 +45,18 @@ class ValidationResponse(BaseModel):
     valid_smiles: List[str]
     invalid_smiles: List[str]
     processing_time: float
+    
+class CoordinationFilterRequest(BaseModel):
+    csv_file: str
+    min_coordination: int = 0
+    max_coordination: int = 12
+
+class CoordinationAnalysisResponse(BaseModel):
+    total_molecules: int
+    molecules_with_metals: int
+    filtered_molecules: int
+    coordination_distribution: Dict[int, int]  # numero_coordinazione -> conteggio
+    molecules: List[Dict]
 
 # Funzione helper per validazione veloce di una singola molecola
 def validate_single_smiles(smiles: str) -> bool:
@@ -294,6 +306,142 @@ async def validate_molecules_bulk(request: ValidationRequest):
         raise he
     except Exception as e:
         logger.error(f"Errore nella validazione bulk: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Errore interno: {str(e)}")
+
+@app.post("/api/filter-by-coordination", response_model=CoordinationAnalysisResponse)
+async def filter_molecules_by_coordination_endpoint(request: CoordinationFilterRequest):
+    """
+    Filtra le molecole di un file CSV in base al numero di coordinazione metallica.
+    """
+    try:
+        # Carica le molecole dal file CSV
+        file_path = os.path.join(CSV_DIR, request.csv_file)
+        if not os.path.exists(file_path):
+            raise HTTPException(status_code=404, detail=f"File CSV non trovato: {request.csv_file}")
+        
+        molecules = []
+        with open(file_path, 'r') as f:
+            csv_reader = csv.reader(f)
+            headers = [h.lower() for h in next(csv_reader)]
+            
+            # Trova l'indice della colonna SMILES
+            smiles_index = None
+            for i, header in enumerate(headers):
+                if 'smiles' in header:
+                    smiles_index = i
+                    break
+            
+            if smiles_index is None:
+                raise HTTPException(status_code=400, detail=f"Nessuna colonna SMILES trovata nel file {request.csv_file}")
+            
+            # Leggi tutte le righe e estrai i dati SMILES
+            for i, row in enumerate(csv_reader):
+                if len(row) > smiles_index:
+                    smiles = row[smiles_index].strip()
+                    if smiles:
+                        molecules.append({
+                            "id": i,
+                            "smiles": smiles
+                        })
+        
+        # Importa la funzione di filtro
+        from molecule_utils import filter_molecules_by_coordination, analyze_metal_coordination
+        
+        # Analizza tutte le molecole per ottenere statistiche
+        molecules_with_metals = 0
+        coordination_distribution = {}
+        
+        for molecule in molecules:
+            coord_info = analyze_metal_coordination(molecule['smiles'])
+            if coord_info['has_metal']:
+                molecules_with_metals += 1
+                max_coord = coord_info['max_coordination']
+                coordination_distribution[max_coord] = coordination_distribution.get(max_coord, 0) + 1
+        
+        # Applica il filtro
+        filtered_molecules = filter_molecules_by_coordination(
+            molecules, 
+            request.min_coordination, 
+            request.max_coordination
+        )
+        
+        return CoordinationAnalysisResponse(
+            total_molecules=len(molecules),
+            molecules_with_metals=molecules_with_metals,
+            filtered_molecules=len(filtered_molecules),
+            coordination_distribution=coordination_distribution,
+            molecules=filtered_molecules
+        )
+        
+    except HTTPException as he:
+        raise he
+    except Exception as e:
+        logger.error(f"Errore nel filtro di coordinazione: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Errore interno: {str(e)}")
+
+@app.get("/api/coordination-stats/{csv_file}")
+async def get_coordination_statistics(csv_file: str):
+    """
+    Ottiene statistiche sulla distribuzione del numero di coordinazione in un file CSV.
+    """
+    try:
+        file_path = os.path.join(CSV_DIR, csv_file)
+        if not os.path.exists(file_path):
+            raise HTTPException(status_code=404, detail=f"File CSV non trovato: {csv_file}")
+        
+        molecules = []
+        with open(file_path, 'r') as f:
+            csv_reader = csv.reader(f)
+            headers = [h.lower() for h in next(csv_reader)]
+            
+            smiles_index = None
+            for i, header in enumerate(headers):
+                if 'smiles' in header:
+                    smiles_index = i
+                    break
+            
+            if smiles_index is None:
+                raise HTTPException(status_code=400, detail=f"Nessuna colonna SMILES trovata nel file {csv_file}")
+            
+            for i, row in enumerate(csv_reader):
+                if len(row) > smiles_index:
+                    smiles = row[smiles_index].strip()
+                    if smiles:
+                        molecules.append(smiles)
+        
+        from molecule_utils import analyze_metal_coordination
+        
+        # Analizza la distribuzione
+        coordination_stats = {}
+        metal_elements = set()
+        molecules_with_metals = 0
+        
+        for smiles in molecules:
+            coord_info = analyze_metal_coordination(smiles)
+            if coord_info['has_metal']:
+                molecules_with_metals += 1
+                max_coord = coord_info['max_coordination']
+                coordination_stats[max_coord] = coordination_stats.get(max_coord, 0) + 1
+                
+                # Raccogli i tipi di metalli
+                for metal in coord_info['metal_atoms']:
+                    metal_elements.add(metal['symbol'])
+        
+        return {
+            "total_molecules": len(molecules),
+            "molecules_with_metals": molecules_with_metals,
+            "coordination_distribution": coordination_stats,
+            "metal_elements_found": sorted(list(metal_elements)),
+            "coordination_range": {
+                "min": min(coordination_stats.keys()) if coordination_stats else 0,
+                "max": max(coordination_stats.keys()) if coordination_stats else 0
+            }
+        }
+        
+    except HTTPException as he:
+        raise he
+    except Exception as e:
+        logger.error(f"Errore nelle statistiche di coordinazione: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Errore interno: {str(e)}")
 
 # Endpoint per salute dell'API
