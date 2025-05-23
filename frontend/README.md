@@ -79,7 +79,7 @@ Applicazione per visualizzare strutture molecolari 2D e 3D a partire da file CSV
    python main.py
    ```
    
-   Il server sarà disponibile all'indirizzo: http://localhost:8000
+   Il server sarà disponibile all'indirizzo: http://localhost:8001
 
 ### Frontend
 

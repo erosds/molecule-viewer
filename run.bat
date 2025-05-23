@@ -15,7 +15,7 @@ start cmd /k "cd frontend && npm start"
 echo.
 echo Applicazione avviata!
 echo Frontend: http://localhost:3000
-echo Backend: http://localhost:8000
+echo Backend: http://localhost:8001
 echo.
 echo Entrambi i processi sono stati avviati in finestre separate.
 echo Chiudi le finestre di comando per terminare l'applicazione.
