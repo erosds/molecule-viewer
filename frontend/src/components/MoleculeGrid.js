@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import MoleculeViewer from './MoleculeViewer';
 import './MoleculeGrid.css';
 
-const MoleculeGrid = ({ molecules, newMoleculesCount = 0 }) => {
+const MoleculeGrid = ({ molecules, newMoleculesCount = 0, validationResults }) => {
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedMolecule, setSelectedMolecule] = useState(null);
   const [viewerOpen, setViewerOpen] = useState(false);
@@ -22,6 +22,12 @@ const MoleculeGrid = ({ molecules, newMoleculesCount = 0 }) => {
     (currentPage - 1) * itemsPerPage,
     currentPage * itemsPerPage
   );
+
+  // Funzione per verificare se una molecola è validata per il 3D
+  const isMoleculeValidated = (smiles) => {
+    if (!validationResults) return false;
+    return validationResults.valid_smiles && validationResults.valid_smiles.includes(smiles);
+  };
 
   const handleMoleculeClick = async (molecule) => {
     setSelectedMolecule(molecule);
@@ -83,6 +89,9 @@ const MoleculeGrid = ({ molecules, newMoleculesCount = 0 }) => {
         <p>
           <span className='new-molecules'>Totale molecole uniche generate: {molecules.length}</span> |
           <span className='unique-molecules'> Totale molecole nuove: {newMoleculesCount}</span> |
+          {validationResults && (
+            <span className='validated-molecules'> Validabili per 3D: {validationResults.valid_molecules}</span>
+          )} |
           Visualizzazione di {Math.min(itemsPerPage, molecules.length - (currentPage - 1) * itemsPerPage)} molecole
           (pagina {currentPage} di {totalPages})
         </p>
@@ -92,7 +101,7 @@ const MoleculeGrid = ({ molecules, newMoleculesCount = 0 }) => {
         {currentMolecules.map((molecule) => (
           <div
             key={molecule.id}
-            className="molecule-card"
+            className={`molecule-card ${isMoleculeValidated(molecule.smiles) ? 'validated-3d' : ''}`}
             onClick={() => handleMoleculeClick(molecule)}
           >
             <div className="molecule-image">
@@ -104,6 +113,11 @@ const MoleculeGrid = ({ molecules, newMoleculesCount = 0 }) => {
                   e.target.src = '/placeholder-molecule.png';
                 }}
               />
+              {isMoleculeValidated(molecule.smiles) && (
+                <div className="validation-badge">
+                  <span className="validation-icon">✓</span>
+                </div>
+              )}
             </div>
             <div className="molecule-info">
               <p title={molecule.smiles}>
@@ -111,6 +125,11 @@ const MoleculeGrid = ({ molecules, newMoleculesCount = 0 }) => {
                   ? `${molecule.smiles.substring(0, 17)}...`
                   : molecule.smiles}
               </p>
+              {isMoleculeValidated(molecule.smiles) && (
+                <div className="validation-status">
+                  3D Generabile
+                </div>
+              )}
             </div>
           </div>
         ))}

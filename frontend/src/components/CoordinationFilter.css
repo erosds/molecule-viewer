@@ -260,9 +260,9 @@
 }
 
 .metal-symbol {
-  font-family: 'Courier New', monospace;
+  font-family: 'SF Pro Display', 'Segoe UI', system-ui, sans-serif;
   font-size: 1rem;
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .check-mark {

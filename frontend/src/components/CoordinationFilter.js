@@ -65,8 +65,8 @@ const CoordinationFilter = ({ selectedFile, onFilterApplied, onStatsUpdate }) =>
     try {
       const requestBody = {
         csv_file: selectedFile,
-        min_coordination: minCoordination,
-        max_coordination: maxCoordination
+        min_coordination: minCoordination === '' ? 0 : minCoordination,
+        max_coordination: maxCoordination === '' ? 12 : maxCoordination
       };
       
       // Aggiungi i metalli selezionati solo se ce ne sono
@@ -245,7 +245,19 @@ const CoordinationFilter = ({ selectedFile, onFilterApplied, onStatsUpdate }) =>
                   min="0"
                   max="20"
                   value={minCoordination}
-                  onChange={(e) => setMinCoordination(parseInt(e.target.value) || 0)}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    if (value === '') {
+                      setMinCoordination('');
+                    } else {
+                      setMinCoordination(parseInt(value) || 0);
+                    }
+                  }}
+                  onBlur={(e) => {
+                    if (e.target.value === '') {
+                      setMinCoordination(0);
+                    }
+                  }}
                 />
               </div>
               
@@ -257,7 +269,19 @@ const CoordinationFilter = ({ selectedFile, onFilterApplied, onStatsUpdate }) =>
                   min="0"
                   max="20"
                   value={maxCoordination}
-                  onChange={(e) => setMaxCoordination(parseInt(e.target.value) || 12)}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    if (value === '') {
+                      setMaxCoordination('');
+                    } else {
+                      setMaxCoordination(parseInt(value) || 12);
+                    }
+                  }}
+                  onBlur={(e) => {
+                    if (e.target.value === '') {
+                      setMaxCoordination(12);
+                    }
+                  }}
                 />
               </div>
             </div>
@@ -266,7 +290,7 @@ const CoordinationFilter = ({ selectedFile, onFilterApplied, onStatsUpdate }) =>
               <button 
                 className="filter-button apply"
                 onClick={handleFilter}
-                disabled={isFiltering || minCoordination > maxCoordination}
+                disabled={isFiltering || (minCoordination !== '' && maxCoordination !== '' && minCoordination > maxCoordination)}
               >
                 {isFiltering ? (
                   <>
