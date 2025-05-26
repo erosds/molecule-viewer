@@ -12,6 +12,7 @@ import uvicorn
 import logging
 from pathlib import Path
 import tempfile
+from datetime import datetime
 
 # Importa le funzioni di utilità per le molecole
 from molecule_utils import smiles_to_3d, smiles_to_2d_image
@@ -461,6 +462,141 @@ async def get_coordination_statistics(csv_file: str):
     except Exception as e:
         logger.error(f"Errore nelle statistiche di coordinazione: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Errore interno: {str(e)}")
+    
+class BatchGenerationRequest(BaseModel):
+    smiles_list: List[str]
+    
+class BatchGenerationResponse(BaseModel):
+    total_requested: int
+    successfully_generated: int 
+    failed_generation: int
+    generated_files: List[str]
+    failed_smiles: List[str]
+    processing_time: float
+    batch_folder: str  # Nuovo campo
+
+
+def generate_xyz_batch(smiles_list: List[str]) -> BatchGenerationResponse:
+    """
+    Genera file XYZ per una lista di SMILES in parallelo.
+    """
+    import time
+    from concurrent.futures import ThreadPoolExecutor, as_completed
+    import hashlib
+    
+    start_time = time.time()
+    
+     # Crea sottocartella con timestamp
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    batch_folder = f"molecules_{timestamp}"
+    batch_path = os.path.join(MOLECULES_DIR, batch_folder)
+    os.makedirs(batch_path, exist_ok=True)
+    
+    successfully_generated = 0
+    failed_generation = 0
+    generated_files = []
+    failed_smiles = []
+    
+    def generate_single_xyz(smiles_with_index: tuple) -> tuple:
+        """Genera un singolo file XYZ e restituisce (successo, nome_file, smiles)"""
+        smiles, index = smiles_with_index
+        try:
+            # Nome file progressivo
+            safe_filename = f"molecule_{index + 1}.xyz"
+            output_path = os.path.join(batch_path, safe_filename)
+            
+            # Se il file esiste già, considera come successo
+            if os.path.exists(output_path):
+                return True, safe_filename, smiles
+            
+            # Genera il file XYZ
+            success = smiles_to_3d(smiles, output_path)
+            if success:
+                return True, safe_filename, smiles
+            else:
+                return False, None, smiles
+                
+        except Exception as e:
+            logger.error(f"Errore nella generazione XYZ per {smiles}: {str(e)}")
+            return False, None, smiles
+    
+    # Usa ThreadPoolExecutor per parallelizzare la generazione
+    max_workers = min(4, len(smiles_list))  # Limita il numero di thread
+    
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        # Invia tutti i job con indice
+        future_to_smiles = {
+            executor.submit(generate_single_xyz, (smiles, i)): smiles 
+            for i, smiles in enumerate(smiles_list)
+        }
+        
+        # Raccoglie i risultati man mano che completano
+        for future in as_completed(future_to_smiles):
+            try:
+                success, filename, smiles = future.result(timeout=30)  # Timeout di 30 secondi per molecola
+                if success:
+                    successfully_generated += 1
+                    generated_files.append(filename)
+                else:
+                    failed_generation += 1
+                    failed_smiles.append(smiles)
+            except Exception as e:
+                failed_generation += 1
+                failed_smiles.append(future_to_smiles[future])
+                logger.error(f"Errore nel future per {future_to_smiles[future]}: {str(e)}")
+    
+    processing_time = time.time() - start_time
+    
+    return BatchGenerationResponse(
+        total_requested=len(smiles_list),
+        successfully_generated=successfully_generated,
+        failed_generation=failed_generation,
+        generated_files=generated_files,
+        failed_smiles=failed_smiles,
+        processing_time=round(processing_time, 2),
+        batch_folder=batch_folder  # Nuovo campo
+    )
+
+# Aggiungi questo endpoint dopo gli altri endpoint
+
+@app.post("/api/generate-xyz-batch", response_model=BatchGenerationResponse)
+async def generate_xyz_batch_endpoint(request: BatchGenerationRequest):
+    """
+    Genera file XYZ per una lista di SMILES validati.
+    """
+    try:
+        if not request.smiles_list:
+            raise HTTPException(status_code=400, detail="Lista SMILES vuota")
+        
+        # Limita il numero massimo di molecole per evitare sovraccarico del server
+        if len(request.smiles_list) > 1000:
+            raise HTTPException(
+                status_code=400, 
+                detail="Troppi SMILES richiesti. Massimo 1000 molecole per volta."
+            )
+        
+        logger.info(f"Avvio generazione batch di {len(request.smiles_list)} file XYZ")
+        
+        result = generate_xyz_batch(request.smiles_list)
+        
+        logger.info(f"Generazione batch completata: {result.successfully_generated}/{result.total_requested} successi")
+        
+        return result
+        
+    except HTTPException as he:
+        raise he
+    except Exception as e:
+        logger.error(f"Errore nella generazione batch XYZ: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Errore interno: {str(e)}")
+
+@app.get("/api/download-xyz-batch/{batch_id}")
+async def download_xyz_batch(batch_id: str):
+    """
+    Endpoint per scaricare tutti i file XYZ generati come archivio ZIP.
+    (Implementazione opzionale per il futuro)
+    """
+    # TODO: Implementare se necessario
+    raise HTTPException(status_code=501, detail="Funzionalità non ancora implementata")
 
 # Endpoint per salute dell'API
 @app.get("/api/health")

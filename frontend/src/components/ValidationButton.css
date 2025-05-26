@@ -1,4 +1,4 @@
-/* Crea il file frontend/src/components/ValidationButton.css */
+/* ValidationButton.css - Versione completa aggiornata */
 
 .validation-container {
   background-color: var(--surface-color);
@@ -193,6 +193,104 @@
   border-left: 3px solid #dc3545;
 }
 
+/* Stili per la sezione di generazione batch */
+.batch-generation-section {
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border-color);
+}
+
+.batch-generation-button {
+  background: linear-gradient(135deg, #28a745, #20c997);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  padding: 1rem 1.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
+  width: 100%;
+  justify-content: center;
+  margin-bottom: 1rem;
+}
+
+.batch-generation-button:hover:not(:disabled) {
+  background: linear-gradient(135deg, #20c997, #17a2b8);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(40, 167, 69, 0.4);
+}
+
+.batch-generation-button:disabled {
+  background: linear-gradient(135deg, #a0a0a0, #808080);
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+.batch-result {
+  background-color: rgba(40, 167, 69, 0.05);
+  border: 1px solid rgba(40, 167, 69, 0.2);
+  border-radius: 8px;
+  padding: 1rem;
+  margin-top: 1rem;
+}
+
+.batch-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.batch-success {
+  color: #28a745;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.batch-failed {
+  color: #dc3545;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.batch-time {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+}
+
+.batch-location {
+  background-color: rgba(255, 255, 255, 0.7);
+  padding: 0.75rem;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  color: var(--text-primary);
+  border: 1px solid rgba(40, 167, 69, 0.1);
+}
+
+.batch-location code {
+  background-color: rgba(0, 0, 0, 0.05);
+  padding: 0.2rem 0.4rem;
+  border-radius: 4px;
+  font-family: 'Courier New', monospace;
+  color: var(--primary-color);
+  font-weight: 500;
+}
+
+.batch-error {
+  background-color: rgba(255, 59, 48, 0.1);
+  color: #ff3b30;
+  padding: 0.875rem;
+  border-radius: 8px;
+  margin-top: 1rem;
+  border: 1px solid rgba(255, 59, 48, 0.2);
+}
+
 /* Responsive design */
 @media (max-width: 768px) {
   .validation-header {
@@ -212,5 +310,18 @@
   .validation-button {
     min-width: auto;
     width: 100%;
+  }
+  
+  .batch-generation-button {
+    font-size: 0.9rem;
+    padding: 0.875rem 1.25rem;
+  }
+  
+  .batch-stats {
+    text-align: center;
+  }
+  
+  .batch-location {
+    text-align: center;
   }
 }
