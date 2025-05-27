@@ -1,4 +1,6 @@
-import React, { useEffect, useRef } from 'react';
+// Aggiornamento di frontend/src/components/MoleculeViewer.jsx
+
+import React, { useEffect, useRef, useState } from 'react';
 import './MoleculeViewer.css';
 
 /* global $3Dmol */ // Diciamo a ESLint che $3Dmol è una variabile globale
@@ -6,6 +8,7 @@ import './MoleculeViewer.css';
 const MoleculeViewer = ({ molecule, onClose, loading, error }) => {
   const viewerRef = useRef(null);
   const viewer3DRef = useRef(null);
+  const [isDownloading, setIsDownloading] = useState(false);
 
   useEffect(() => {
     // Pulizia del visualizzatore 3D quando il componente viene smontato
@@ -20,6 +23,50 @@ const MoleculeViewer = ({ molecule, onClose, loading, error }) => {
       }
     };
   }, []);
+
+  // Funzione per il download del file XYZ
+  const handleDownloadXYZ = async () => {
+    if (!molecule.modelPath || isDownloading) return;
+
+    setIsDownloading(true);
+    
+    try {
+      // Estrai il nome del file dal percorso
+      const filename = molecule.modelPath.split('/').pop();
+      
+      // Effettua la richiesta di download
+      const response = await fetch(`/api/download-xyz/${filename}`);
+      
+      if (!response.ok) {
+        throw new Error(`Errore nel download: ${response.status}`);
+      }
+      
+      // Crea un blob dal contenuto della risposta
+      const blob = await response.blob();
+      
+      // Crea un URL temporaneo per il blob
+      const url = window.URL.createObjectURL(blob);
+      
+      // Crea un elemento <a> per scaricare il file
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      
+      // Simula il click per avviare il download
+      document.body.appendChild(link);
+      link.click();
+      
+      // Pulizia
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      
+    } catch (err) {
+      console.error("Errore durante il download:", err);
+      alert(`Errore durante il download del file: ${err.message}`);
+    } finally {
+      setIsDownloading(false);
+    }
+  };
 
   useEffect(() => {
     if (!loading && !error && molecule.modelPath && viewerRef.current) {
@@ -193,8 +240,32 @@ const MoleculeViewer = ({ molecule, onClose, loading, error }) => {
     <div className="molecule-viewer-overlay">
       <div className="molecule-viewer-container">
         <div className="molecule-viewer-header">
-                <p><strong>SMILES:</strong> {molecule.smiles}</p>
-          <button className="close-button" onClick={onClose}>×</button>
+          <div className="molecule-header-info">
+            <p><strong>SMILES:</strong> {molecule.smiles}</p>
+          </div>
+          <div className="molecule-header-actions">
+            {/* Pulsante Download XYZ */}
+            {!loading && !error && molecule.modelPath && (
+              <button 
+                className="download-xyz-button"
+                onClick={handleDownloadXYZ}
+                disabled={isDownloading}
+                title="Scarica file XYZ"
+              >
+                {isDownloading ? (
+                  <>
+                    <div className="download-spinner"></div>
+                    Download...
+                  </>
+                ) : (
+                  <>
+                    📁 Scarica XYZ
+                  </>
+                )}
+              </button>
+            )}
+            <button className="close-button" onClick={onClose}>×</button>
+          </div>
         </div>
 
         <div className="molecule-viewer-content">
@@ -210,7 +281,6 @@ const MoleculeViewer = ({ molecule, onClose, loading, error }) => {
             </div>
           ) : (
             <>
-              
               <div className="viewer-container" ref={viewerRef} id={`molecule-viewer-container-${molecule.id}`}>
                 {/* Il visualizzatore 3D verrà inserito qui */}
                 {typeof $3Dmol === 'undefined' && renderFallbackViewer()}

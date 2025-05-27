@@ -141,3 +141,127 @@
   background-color: rgba(255, 59, 48, 0.05);
   border-radius: 8px;
 }
+
+/* Aggiungi questi stili a frontend/src/components/MoleculeViewer.css */
+
+.molecule-viewer-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.molecule-header-info {
+  flex: 1;
+}
+
+.molecule-header-info p {
+  word-break: break-all;
+  margin: 0;
+}
+
+.molecule-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.download-xyz-button {
+  background: linear-gradient(135deg, #28a745, #20c997);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  box-shadow: 0 2px 6px rgba(40, 167, 69, 0.3);
+  min-width: 120px;
+  justify-content: center;
+}
+
+.download-xyz-button:hover:not(:disabled) {
+  background: linear-gradient(135deg, #20c997, #17a2b8);
+  transform: translateY(-1px);
+  box-shadow: 0 3px 8px rgba(40, 167, 69, 0.4);
+}
+
+.download-xyz-button:disabled {
+  background: linear-gradient(135deg, #a0a0a0, #808080);
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.download-spinner {
+  width: 12px;
+  height: 12px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  border-top-color: white;
+  animation: spin 1s ease-in-out infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.close-button {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  line-height: 1;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 0.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  width: 30px;
+  height: 30px;
+  transition: background-color 0.2s;
+}
+
+.close-button:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+  color: var(--text-primary);
+}
+
+/* Responsive per mobile */
+@media (max-width: 768px) {
+  .molecule-viewer-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1rem;
+    padding: 1rem;
+  }
+  
+  .molecule-header-info {
+    order: 1;
+  }
+  
+  .molecule-header-actions {
+    order: 0;
+    justify-content: space-between;
+    align-items: center;
+  }
+  
+  .download-xyz-button {
+    flex: 1;
+    max-width: 200px;
+    font-size: 0.8rem;
+    padding: 0.4rem 0.6rem;
+  }
+  
+  .close-button {
+    order: 2;
+  }
+}

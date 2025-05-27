@@ -13,6 +13,8 @@ import logging
 from pathlib import Path
 import tempfile
 from datetime import datetime
+import zipfile
+from fastapi.responses import StreamingResponse
 
 # Importa le funzioni di utilità per le molecole
 from molecule_utils import smiles_to_3d, smiles_to_2d_image
@@ -589,14 +591,129 @@ async def generate_xyz_batch_endpoint(request: BatchGenerationRequest):
         logger.error(f"Errore nella generazione batch XYZ: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Errore interno: {str(e)}")
 
-@app.get("/api/download-xyz-batch/{batch_id}")
-async def download_xyz_batch(batch_id: str):
+@app.get("/api/download-xyz/{filename}")
+async def download_single_xyz(filename: str):
     """
-    Endpoint per scaricare tutti i file XYZ generati come archivio ZIP.
-    (Implementazione opzionale per il futuro)
+    Endpoint per scaricare un singolo file XYZ.
     """
-    # TODO: Implementare se necessario
-    raise HTTPException(status_code=501, detail="Funzionalità non ancora implementata")
+    try:
+        # Cerca il file nella cartella molecules
+        file_path = os.path.join(MOLECULES_DIR, filename)
+        
+        # Se non esiste nella cartella principale, cerca nelle sottocartelle
+        if not os.path.exists(file_path):
+            # Cerca in tutte le sottocartelle molecules_*
+            for subdir in os.listdir(MOLECULES_DIR):
+                subdir_path = os.path.join(MOLECULES_DIR, subdir)
+                if os.path.isdir(subdir_path) and subdir.startswith('molecules_'):
+                    potential_file = os.path.join(subdir_path, filename)
+                    if os.path.exists(potential_file):
+                        file_path = potential_file
+                        break
+        
+        if not os.path.exists(file_path):
+            raise HTTPException(status_code=404, detail=f"File XYZ non trovato: {filename}")
+        
+        # Restituisci il file per il download
+        return FileResponse(
+            file_path,
+            media_type="chemical/x-xyz",
+            filename=filename,
+            headers={"Content-Disposition": f"attachment; filename={filename}"}
+        )
+        
+    except HTTPException as he:
+        raise he
+    except Exception as e:
+        logger.error(f"Errore nel download del file XYZ: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Errore interno: {str(e)}")
+
+@app.get("/api/download-xyz-batch/{batch_folder}")
+async def download_xyz_batch_zip(batch_folder: str):
+    """
+    Endpoint per scaricare tutti i file XYZ di una cartella batch come archivio ZIP.
+    """
+    try:
+        batch_path = os.path.join(MOLECULES_DIR, batch_folder)
+        
+        if not os.path.exists(batch_path) or not os.path.isdir(batch_path):
+            raise HTTPException(status_code=404, detail=f"Cartella batch non trovata: {batch_folder}")
+        
+        # Trova tutti i file XYZ nella cartella
+        xyz_files = [f for f in os.listdir(batch_path) if f.endswith('.xyz')]
+        
+        if not xyz_files:
+            raise HTTPException(status_code=404, detail="Nessun file XYZ trovato nella cartella batch")
+        
+        # Crea un file ZIP temporaneo
+        import tempfile
+        with tempfile.NamedTemporaryFile(delete=False, suffix='.zip') as temp_zip:
+            temp_zip_path = temp_zip.name
+        
+        try:
+            # Crea il file ZIP
+            with zipfile.ZipFile(temp_zip_path, 'w', zipfile.ZIP_DEFLATED) as zip_file:
+                for xyz_file in xyz_files:
+                    file_path = os.path.join(batch_path, xyz_file)
+                    # Aggiungi il file al ZIP mantenendo solo il nome del file
+                    zip_file.write(file_path, xyz_file)
+            
+            # Preparare il nome del file ZIP
+            zip_filename = f"{batch_folder}_structures.zip"
+            
+            # Restituisci il file ZIP come FileResponse
+            return FileResponse(
+                temp_zip_path,
+                media_type="application/zip",
+                filename=zip_filename,
+                headers={"Content-Disposition": f"attachment; filename={zip_filename}"}
+            )
+            
+        except Exception as e:
+            # Pulizia del file temporaneo in caso di errore
+            if os.path.exists(temp_zip_path):
+                os.unlink(temp_zip_path)
+            raise e
+        
+    except HTTPException as he:
+        raise he
+    except Exception as e:
+        logger.error(f"Errore nel download del batch ZIP: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Errore interno: {str(e)}")
+    
+@app.get("/api/batch-info/{batch_folder}")
+async def get_batch_info(batch_folder: str):
+    """
+    Endpoint per ottenere informazioni su una cartella batch.
+    """
+    try:
+        batch_path = os.path.join(MOLECULES_DIR, batch_folder)
+        
+        if not os.path.exists(batch_path) or not os.path.isdir(batch_path):
+            raise HTTPException(status_code=404, detail=f"Cartella batch non trovata: {batch_folder}")
+        
+        # Conta i file XYZ nella cartella
+        xyz_files = [f for f in os.listdir(batch_path) if f.endswith('.xyz')]
+        
+        # Calcola la dimensione totale
+        total_size = 0
+        for xyz_file in xyz_files:
+            file_path = os.path.join(batch_path, xyz_file)
+            total_size += os.path.getsize(file_path)
+        
+        return {
+            "batch_folder": batch_folder,
+            "file_count": len(xyz_files),
+            "total_size_bytes": total_size,
+            "total_size_mb": round(total_size / (1024 * 1024), 2),
+            "files": xyz_files[:10]  # Mostra solo i primi 10 nomi di file
+        }
+        
+    except HTTPException as he:
+        raise he
+    except Exception as e:
+        logger.error(f"Errore nel recupero info batch: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Errore interno: {str(e)}")
 
 # Endpoint per salute dell'API
 @app.get("/api/health")
