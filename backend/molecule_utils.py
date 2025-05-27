@@ -7,6 +7,10 @@ from rdkit.Chem import Draw, AllChem, Descriptors
 from PIL import Image
 import io
 
+# Aggiungi queste righe per disabilitare i warning di RDKit
+from rdkit import RDLogger
+RDLogger.DisableLog('rdApp.*')
+
 # Configura il logger
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)

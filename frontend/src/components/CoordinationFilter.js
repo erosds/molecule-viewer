@@ -11,7 +11,7 @@ const CoordinationFilter = ({ selectedFile, onFilterApplied, onStatsUpdate }) =>
   const [isLoading, setIsLoading] = useState(false);
   const [isFiltering, setIsFiltering] = useState(false);
   const [error, setError] = useState(null);
-  
+
   // Carica le statistiche quando cambia il file selezionato
   useEffect(() => {
     if (selectedFile) {
@@ -25,30 +25,30 @@ const CoordinationFilter = ({ selectedFile, onFilterApplied, onStatsUpdate }) =>
   const loadCoordinationStats = async () => {
     setIsLoading(true);
     setError(null);
-    
+
     try {
       const response = await fetch(`/api/coordination-stats/${selectedFile}`);
       if (!response.ok) {
         throw new Error('Errore nel caricamento delle statistiche');
       }
-      
+
       const stats = await response.json();
       setCoordinationStats(stats);
-      
+
       // Imposta i valori di default basati sui dati
       if (stats.coordination_range) {
         setMinCoordination(stats.coordination_range.min);
         setMaxCoordination(stats.coordination_range.max);
       }
-      
+
       // Reset metalli selezionati quando cambiano le statistiche
       setSelectedMetals([]);
-      
+
       // Comunica le statistiche al componente padre
       if (onStatsUpdate) {
         onStatsUpdate(stats);
       }
-      
+
     } catch (err) {
       setError(`Errore: ${err.message}`);
     } finally {
@@ -58,22 +58,22 @@ const CoordinationFilter = ({ selectedFile, onFilterApplied, onStatsUpdate }) =>
 
   const handleFilter = async () => {
     if (!selectedFile) return;
-    
+
     setIsFiltering(true);
     setError(null);
-    
+
     try {
       const requestBody = {
         csv_file: selectedFile,
         min_coordination: minCoordination === '' ? 0 : minCoordination,
         max_coordination: maxCoordination === '' ? 12 : maxCoordination
       };
-      
+
       // Aggiungi i metalli selezionati solo se ce ne sono
       if (selectedMetals.length > 0) {
         requestBody.selected_metals = selectedMetals;
       }
-      
+
       const response = await fetch('/api/filter-by-coordination', {
         method: 'POST',
         headers: {
@@ -88,7 +88,7 @@ const CoordinationFilter = ({ selectedFile, onFilterApplied, onStatsUpdate }) =>
       }
 
       const result = await response.json();
-      
+
       // Comunica i risultati al componente padre
       if (onFilterApplied) {
         onFilterApplied(result.molecules, result);
@@ -142,8 +142,8 @@ const CoordinationFilter = ({ selectedFile, onFilterApplied, onStatsUpdate }) =>
   return (
     <div className="coordination-filter">
       <div className="coordination-filter-header">
-        <h3>🧬 Filtro per Numero di Coordinazione e Metalli</h3>
-        <button 
+        <h3>🧬 Filtro per Metalli e Numero di Coordinazione</h3>
+        <button
           className="refresh-stats-button"
           onClick={loadCoordinationStats}
           disabled={isLoading}
@@ -172,12 +172,6 @@ const CoordinationFilter = ({ selectedFile, onFilterApplied, onStatsUpdate }) =>
                 <div className="stat-number">{coordinationStats.molecules_with_metals}</div>
                 <div className="stat-label">Con Metalli</div>
               </div>
-              <div className="stat-item range">
-                <div className="stat-number">
-                  {coordinationStats.coordination_range.min}-{coordinationStats.coordination_range.max}
-                </div>
-                <div className="stat-label">Range Coordinazione</div>
-              </div>
             </div>
           </div>
 
@@ -187,14 +181,14 @@ const CoordinationFilter = ({ selectedFile, onFilterApplied, onStatsUpdate }) =>
               <div className="metal-selection-header">
                 <h4>Seleziona Metalli da Includere:</h4>
                 <div className="metal-selection-controls">
-                  <button 
+                  <button
                     className="metal-control-button select-all"
                     onClick={selectAllMetals}
                     disabled={isFiltering}
                   >
                     ✓ Tutti
                   </button>
-                  <button 
+                  <button
                     className="metal-control-button deselect-all"
                     onClick={deselectAllMetals}
                     disabled={isFiltering}
@@ -203,7 +197,7 @@ const CoordinationFilter = ({ selectedFile, onFilterApplied, onStatsUpdate }) =>
                   </button>
                 </div>
               </div>
-              
+
               <div className="metal-selection-grid">
                 {coordinationStats.metal_elements_found.map(metal => (
                   <button
@@ -217,7 +211,7 @@ const CoordinationFilter = ({ selectedFile, onFilterApplied, onStatsUpdate }) =>
                   </button>
                 ))}
               </div>
-              
+
               {selectedMetals.length > 0 && (
                 <div className="selected-metals-info">
                   <span className="selected-label">
@@ -260,7 +254,7 @@ const CoordinationFilter = ({ selectedFile, onFilterApplied, onStatsUpdate }) =>
                   }}
                 />
               </div>
-              
+
               <div className="input-group">
                 <label htmlFor="max-coord">Coordinazione Max:</label>
                 <input
@@ -287,7 +281,7 @@ const CoordinationFilter = ({ selectedFile, onFilterApplied, onStatsUpdate }) =>
             </div>
 
             <div className="filter-buttons">
-              <button 
+              <button
                 className="filter-button apply"
                 onClick={handleFilter}
                 disabled={isFiltering || (minCoordination !== '' && maxCoordination !== '' && minCoordination > maxCoordination)}
@@ -303,8 +297,8 @@ const CoordinationFilter = ({ selectedFile, onFilterApplied, onStatsUpdate }) =>
                   </>
                 )}
               </button>
-              
-              <button 
+
+              <button
                 className="filter-button reset"
                 onClick={resetFilter}
                 disabled={isFiltering}
@@ -318,22 +312,25 @@ const CoordinationFilter = ({ selectedFile, onFilterApplied, onStatsUpdate }) =>
             <div className="coordination-distribution">
               <h4>Distribuzione Numero di Coordinazione:</h4>
               <div className="distribution-chart">
-                {Object.entries(coordinationStats.coordination_distribution)
-                  .sort(([a], [b]) => parseInt(a) - parseInt(b))
-                  .map(([coord, count]) => (
-                    <div key={coord} className="distribution-bar">
-                      <div className="bar-label">{coord}</div>
-                      <div 
-                        className="bar-fill"
-                        style={{
-                          width: `${(count / Math.max(...Object.values(coordinationStats.coordination_distribution))) * 100}%`,
-                          backgroundColor: (parseInt(coord) >= minCoordination && parseInt(coord) <= maxCoordination) 
-                            ? '#007aff' : '#d2d2d7'
-                        }}
-                      ></div>
-                      <div className="bar-count">{count}</div>
-                    </div>
-                  ))}
+                {(() => {
+                  const maxCount = Math.max(...Object.values(coordinationStats.coordination_distribution));
+                  return Object.entries(coordinationStats.coordination_distribution)
+                    .sort(([a], [b]) => parseInt(a) - parseInt(b))
+                    .map(([coord, count]) => (
+                      <div key={coord} className="distribution-bar">
+                        <div className="bar-label">{coord}</div>
+                        <div
+                          className="bar-fill"
+                          style={{
+                            width: `${(count / maxCount) * 100}%`, // Era (count / Math.max(...Object.values(...))) * 100
+                            backgroundColor: (parseInt(coord) >= minCoordination && parseInt(coord) <= maxCoordination)
+                              ? '#007aff' : '#d2d2d7'
+                          }}
+                        ></div>
+                        <div className="bar-count">{count}</div>
+                      </div>
+                    ));
+                })()}
               </div>
             </div>
           )}

@@ -87,13 +87,17 @@ const MoleculeGrid = ({ molecules, newMoleculesCount = 0, validationResults }) =
     <div className="molecule-grid-container">
       <div className="molecule-grid-info">
         <p>
-          <span className='new-molecules'>Totale molecole uniche generate: {molecules.length}</span> |
-          <span className='unique-molecules'> Totale molecole nuove: {newMoleculesCount}</span> |
-          {validationResults && (
-            <span className='validated-molecules'> Validabili per 3D: {validationResults.valid_molecules}</span>
-          )} |
-          Visualizzazione di {Math.min(itemsPerPage, molecules.length - (currentPage - 1) * itemsPerPage)} molecole
-          (pagina {currentPage} di {totalPages})
+          <span>
+            <span className='new-molecules'>Totale molecole uniche generate: {molecules.length}</span> |
+            <span className='unique-molecules'> Totale molecole nuove: {newMoleculesCount}</span>
+            {validationResults && (
+              <span className='validated-molecules'> | Validabili per 3D: {validationResults.valid_molecules}</span>
+            )}
+          </span>
+          <span>
+            Visualizzazione di {Math.min(itemsPerPage, molecules.length - (currentPage - 1) * itemsPerPage)} molecole
+            (pagina {currentPage} di {totalPages})
+          </span>
         </p>
       </div>
 

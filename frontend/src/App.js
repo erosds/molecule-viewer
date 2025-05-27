@@ -1,4 +1,4 @@
-// Aggiorna il file frontend/src/App.js
+// App.js - Layout con Sidebar
 
 import React, { useState } from 'react';
 import FileSelector from './components/FileSelector';
@@ -16,10 +16,10 @@ function App() {
   const [referenceFile, setReferenceFile] = useState(null);
   const [referenceMolecules, setReferenceMolecules] = useState([]);
   const [newMolecules, setNewMolecules] = useState(0);
-  
+
   // Stato per i risultati della validazione
   const [validationResults, setValidationResults] = useState(null);
-  
+
   // Nuovo stato per il filtro di coordinazione
   const [isFiltered, setIsFiltered] = useState(false);
   const [originalMolecules, setOriginalMolecules] = useState([]);
@@ -31,7 +31,7 @@ function App() {
     setLoading(true);
     setError(null);
     setValidationResults(null);
-    setIsFiltered(false); // Reset del filtro quando cambia il file
+    setIsFiltered(false);
     setOriginalMolecules([]);
     setFilterInfo(null);
 
@@ -44,10 +44,9 @@ function App() {
       })
       .then(parsedMolecules => {
         setMolecules(parsedMolecules);
-        setOriginalMolecules(parsedMolecules); // Salva le molecole originali
+        setOriginalMolecules(parsedMolecules);
         setLoading(false);
 
-        // Calcola molecole nuove se il file di riferimento è già caricato
         if (referenceMolecules.length > 0) {
           calculateNewMolecules(parsedMolecules, referenceMolecules);
         } else {
@@ -78,7 +77,6 @@ function App() {
       .then(parsedMolecules => {
         setReferenceMolecules(parsedMolecules);
 
-        // Calcola molecole nuove se entrambi i set sono disponibili
         if (molecules.length > 0) {
           calculateNewMolecules(molecules, parsedMolecules);
         }
@@ -100,19 +98,16 @@ function App() {
     setNewMolecules(newCount);
   };
 
-  // Handler per i risultati della validazione
   const handleValidationComplete = (results) => {
     setValidationResults(results);
   };
 
-  // Handler per il filtro di coordinazione
   const handleFilterApplied = (filteredMolecules, filterResult) => {
     setMolecules(filteredMolecules);
     setIsFiltered(true);
     setFilterInfo(filterResult);
-    setValidationResults(null); // Reset validation quando si applica un filtro
-    
-    // Ricalcola le molecole nuove per il subset filtrato
+    setValidationResults(null);
+
     if (referenceMolecules.length > 0) {
       calculateNewMolecules(filteredMolecules, referenceMolecules);
     } else {
@@ -120,19 +115,16 @@ function App() {
     }
   };
 
-  // Handler per aggiornare le statistiche di coordinazione
   const handleStatsUpdate = (stats) => {
     setCoordinationStats(stats);
   };
 
-  // Funzione per resettare il filtro
   const resetFilter = () => {
     setMolecules(originalMolecules);
     setIsFiltered(false);
     setFilterInfo(null);
     setValidationResults(null);
-    
-    // Ricalcola le molecole nuove per il set completo
+
     if (referenceMolecules.length > 0) {
       calculateNewMolecules(originalMolecules, referenceMolecules);
     } else {
@@ -142,86 +134,121 @@ function App() {
 
   return (
     <div className="app">
+      {/* Header */}
       <header className="app-header">
         <h1>Visualizzatore Molecole</h1>
       </header>
-      <main className="app-content">
-        {/* Selettore del file di riferimento */}
-        <FileSelector 
-          onSelectFile={handleReferenceFileSelect} 
-          selectedFile={referenceFile} 
-          type="reference"
-          label="Seleziona il file CSV di molecole di riferimento:"
-        />
-        
-        {/* Selettore del file principale */}
-        <FileSelector 
-          onSelectFile={handleFileSelect} 
-          selectedFile={selectedFile} 
-          type="main"
-          label="Seleziona un file CSV di molecole da visualizzare:"
-        />
-        
-        {/* Filtro di coordinazione */}
-        {selectedFile && originalMolecules.length > 0 && (
-          <CoordinationFilter 
-            selectedFile={selectedFile}
-            onFilterApplied={handleFilterApplied}
-            onStatsUpdate={handleStatsUpdate}
-          />
-        )}
-        
-        {/* Informazioni sul filtro applicato */}
-        {isFiltered && filterInfo && (
-          <div className="filter-info">
-            <div className="filter-summary">
-              <span className="filter-label">
-                🔍 Filtro attivo: coordinazione {filterInfo.coordination_distribution ? 
-                  `${Math.min(...Object.keys(filterInfo.coordination_distribution).map(Number))}-${Math.max(...Object.keys(filterInfo.coordination_distribution).map(Number))}` : 
-                  'personalizzata'}
-              </span>
-              <span className="filter-stats">
-                {filterInfo.filtered_molecules} di {filterInfo.total_molecules} molecole
-              </span>
-              <button 
-                className="reset-filter-button"
-                onClick={resetFilter}
-                title="Rimuovi filtro e mostra tutte le molecole"
-              >
-                ✕ Rimuovi filtro
-              </button>
+
+      {/* Sidebar */}
+      <aside className="app-sidebar">
+        <div className="sidebar-content">
+          {/* Sezione File di Riferimento */}
+          <div className="sidebar-section">
+            <div className="sidebar-section-title">
+              <span className="icon">📁</span>
+              File di Riferimento
             </div>
+            <FileSelector
+              onSelectFile={handleReferenceFileSelect}
+              selectedFile={referenceFile}
+              type="reference"
+              label="Molecole di riferimento:"
+            />
           </div>
-        )}
-        
+
+          {/* Sezione File Principale */}
+          <div className="sidebar-section">
+            <div className="sidebar-section-title">
+              <span className="icon">📊</span>
+              File da Visualizzare
+            </div>
+            <FileSelector
+              onSelectFile={handleFileSelect}
+              selectedFile={selectedFile}
+              type="main"
+              label="File CSV molecole:"
+            />
+          </div>
+
+          {/* Sezione Filtro di Coordinazione */}
+          {selectedFile && originalMolecules.length > 0 && (
+            <div className="sidebar-section">
+              <CoordinationFilter
+                selectedFile={selectedFile}
+                onFilterApplied={handleFilterApplied}
+                onStatsUpdate={handleStatsUpdate}
+              />
+            </div>
+          )}
+
+          {/* Informazioni Filtro Attivo */}
+          {isFiltered && filterInfo && (
+            <div className="sidebar-section">
+              <div className="sidebar-section-title">
+                <span className="icon">🔍</span>
+                Filtro Attivo
+              </div>
+              <div className="filter-info">
+                <div className="filter-summary">
+                  <div className="stat-item filtered">
+                    <div className="stat-number">{filterInfo.filtered_molecules}</div>
+                    <div className="stat-label">Molecole Filtrate</div>
+                  </div>
+                  <div className="filter-details">
+                    <span className="filter-stats">
+                      su {filterInfo.total_molecules} totali
+                    </span>
+                    <button
+                      className="reset-filter-button"
+                      onClick={resetFilter}
+                      title="Rimuovi filtro e mostra tutte le molecole"
+                    >
+                      ✕ Rimuovi filtro
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Sezione Validazione */}
+          {molecules.length > 0 && (
+            <div className="sidebar-section">
+              <div className="sidebar-section-title">
+                <span className="icon">🧪</span>
+                Validazione 3D
+              </div>
+              <ValidationButton
+                molecules={molecules}
+                onValidationComplete={handleValidationComplete}
+              />
+            </div>
+          )}
+        </div>
+      </aside>
+
+      {/* Contenuto Principale */}
+      <main className="app-content">
         {loading ? (
           <div className="loading">Caricamento molecole...</div>
         ) : error ? (
           <div className="error">{error}</div>
         ) : molecules.length > 0 ? (
-          <>
-            {/* Pulsante di validazione delle strutture 3D */}
-            <ValidationButton 
-              molecules={molecules} 
-              onValidationComplete={handleValidationComplete}
-            />
-            
-            <MoleculeGrid 
-              molecules={molecules} 
-              newMoleculesCount={newMolecules}
-              validationResults={validationResults}
-            />
-          </>
+          <MoleculeGrid
+            molecules={molecules}
+            newMoleculesCount={newMolecules}
+            validationResults={validationResults}
+          />
         ) : selectedFile ? (
           <div className="error">
-            {isFiltered ? 
+            {isFiltered ?
               "Nessuna molecola corrisponde ai criteri di filtro selezionati" :
               "Nessuna molecola SMILES riconosciuta nel file selezionato"
             }
           </div>
         ) : (
           <div className="instructions">
-            Seleziona un file CSV contenente strutture molecolari SMILES per iniziare
+            Seleziona un file CSV contenente strutture molecolari SMILES dalla sidebar per iniziare
           </div>
         )}
       </main>

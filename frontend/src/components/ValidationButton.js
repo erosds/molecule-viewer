@@ -198,11 +198,6 @@ const ValidationButton = ({ molecules, onValidationComplete }) => {
               <div className="stat-number">{validationResult.invalid_molecules}</div>
               <div className="stat-label">Non Generabili</div>
             </div>
-            
-            <div className="stat-item total">
-              <div className="stat-number">{validationResult.total_molecules}</div>
-              <div className="stat-label">Totale</div>
-            </div>
           </div>
 
           {validationResult.invalid_molecules > 0 && (

@@ -1,21 +1,30 @@
-/* MoleculeGrid.css */
+/* MoleculeGrid.css - Aggiornato per il nuovo layout */
 .molecule-grid-container {
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: 1rem;
 }
 
 .molecule-grid-info {
   display: flex;
-  justify-content: space-between;
+  justify-content: center;
   align-items: center;
   color: var(--text-secondary);
   font-size: 0.9rem;
+  background-color: var(--surface-color);
+  padding: 0.55rem 1rem; /* Era 1rem */
+  border-radius: 8px;
+  box-shadow: 0 2px 8px var(--shadow-color);
+  margin-bottom: 0.1rem; /* Aggiungi questa riga se serve */
 }
 
 .molecule-grid-info p {
   width: 100%;
   text-align: center;
+  line-height: 1.4;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
 }
 
 .molecule-grid-info strong {
@@ -24,40 +33,40 @@
 
 .molecule-grid {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: 1rem;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 0.5rem;
 }
 
-/* Aggiungere questo al file MoleculeGrid.css */
+/* Stili per i contatori */
 .new-molecules {
   color: #008b0c;
   font-weight: 500;
 }
 
-/* Aggiungere questo al file MoleculeGrid.css */
 .unique-molecules {
   color: #002c8b;
   font-weight: 500;
 }
 
-/* Nuovo stile per le molecole validate */
 .validated-molecules {
   color: #28a745;
   font-weight: 500;
 }
 
 .new-molecules strong {
-  color: #008b0c; /* Un colore arancione per evidenziare le molecole nuove */
+  color: #008b0c;
 }
 
-/* Aggiungere questo per dare più spazio tra i selettori di file */
-.file-selector + .file-selector {
-  margin-top: -1rem; /* Riduce leggermente lo spazio tra i due selettori */
+/* Responsive grid */
+@media (max-width: 1400px) {
+  .molecule-grid {
+    grid-template-columns: repeat(5, 1fr);
+  }
 }
 
 @media (max-width: 1200px) {
   .molecule-grid {
-    grid-template-columns: repeat(5, 1fr);
+    grid-template-columns: repeat(4, 1fr);
   }
 }
 
@@ -73,12 +82,6 @@
   }
 }
 
-@media (max-width: 400px) {
-  .molecule-grid {
-    grid-template-columns: 1fr;
-  }
-}
-
 .molecule-card {
   background-color: var(--surface-color);
   border-radius: 12px;
@@ -88,7 +91,7 @@
   cursor: pointer;
   display: flex;
   flex-direction: column;
-  border: 2px solid transparent; /* Bordo trasparente di default */
+  border: 2px solid transparent;
 }
 
 /* Stile per le molecole validate con bordino verde */
@@ -108,14 +111,14 @@
 }
 
 .molecule-image {
-  height: 160px;
+  height: 120px;
   background-color: #ffffff;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 1rem;
+  padding: 0.15rem;
   border-bottom: 1px solid var(--border-color);
-  position: relative; /* Per posizionare il badge di validazione */
+  position: relative;
 }
 
 .molecule-image img {
@@ -177,8 +180,11 @@
   align-items: center;
   justify-content: center;
   gap: 1rem;
-  margin-top: 1rem;
+  margin-top: 1.5rem;
   padding: 1rem 0;
+  background-color: var(--surface-color);
+  border-radius: 8px;
+  box-shadow: 0 2px 8px var(--shadow-color);
 }
 
 .pagination-button {
@@ -189,21 +195,25 @@
   padding: 0.5rem 1rem;
   font-size: 0.9rem;
   cursor: pointer;
-  transition: background-color 0.2s ease;
+  transition: all 0.2s ease;
 }
 
 .pagination-button:hover:not(:disabled) {
   background-color: rgba(0, 122, 255, 0.05);
+  border-color: var(--primary-color);
+  transform: translateY(-1px);
 }
 
 .pagination-button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+  transform: none;
 }
 
 .page-indicator {
   color: var(--text-secondary);
   font-size: 0.9rem;
+  font-weight: 500;
 }
 
 /* Animazione per evidenziare le molecole validate quando appaiono */
@@ -259,4 +269,69 @@
 .legend-text {
   color: var(--text-secondary);
   font-weight: 500;
+}
+
+/* Responsive per le card delle molecole */
+@media (max-width: 768px) {
+  .molecule-image {
+    height: 120px;
+    padding: 0.75rem;
+  }
+  
+  .molecule-info {
+    padding: 0.75rem;
+  }
+  
+  .molecule-info p {
+    font-size: 0.8rem;
+  }
+  
+  .validation-status {
+    font-size: 0.7rem;
+    padding: 0.2rem 0.4rem;
+  }
+  
+  .validation-badge {
+    width: 20px;
+    height: 20px;
+    font-size: 0.7rem;
+    top: 6px;
+    right: 6px;
+  }
+  
+  .pagination-controls {
+    gap: 0.5rem;
+    padding: 0.75rem;
+    margin-top: 1rem;
+  }
+  
+  .pagination-button {
+    padding: 0.4rem 0.8rem;
+    font-size: 0.8rem;
+  }
+  
+  .page-indicator {
+    font-size: 0.8rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .molecule-image {
+    height: 100px;
+    padding: 0.5rem;
+  }
+  
+  .molecule-info {
+    padding: 0.5rem;
+  }
+  
+  .molecule-info p {
+    font-size: 0.75rem;
+  }
+  
+  .validation-badge {
+    width: 18px;
+    height: 18px;
+    font-size: 0.6rem;
+  }
 }
