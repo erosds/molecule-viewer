@@ -1,4 +1,4 @@
-// Aggiorna il file frontend/src/components/CoordinationFilter.js
+// CoordinationFilter.js - Aggiornato per l'integrazione con l'analisi di novelty
 
 import React, { useState, useEffect } from 'react';
 import './CoordinationFilter.css';
@@ -7,7 +7,7 @@ const CoordinationFilter = ({ selectedFile, onFilterApplied, onStatsUpdate }) =>
   const [coordinationStats, setCoordinationStats] = useState(null);
   const [minCoordination, setMinCoordination] = useState(0);
   const [maxCoordination, setMaxCoordination] = useState(12);
-  const [selectedMetals, setSelectedMetals] = useState([]); // Nuovo stato per metalli selezionati
+  const [selectedMetals, setSelectedMetals] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isFiltering, setIsFiltering] = useState(false);
   const [error, setError] = useState(null);
@@ -18,7 +18,7 @@ const CoordinationFilter = ({ selectedFile, onFilterApplied, onStatsUpdate }) =>
       loadCoordinationStats();
     } else {
       setCoordinationStats(null);
-      setSelectedMetals([]);  // Reset metalli selezionati
+      setSelectedMetals([]);
     }
   }, [selectedFile]);
 
@@ -89,6 +89,10 @@ const CoordinationFilter = ({ selectedFile, onFilterApplied, onStatsUpdate }) =>
 
       const result = await response.json();
 
+      // IMPORTANTE: Le molecole filtrate dal backend non hanno le proprietà di novelty
+      // Dobbiamo mantenerle dalle molecole originali se disponibili
+      // Questo sarà gestito dal componente padre (App.js) che ha accesso ai dati completi
+
       // Comunica i risultati al componente padre
       if (onFilterApplied) {
         onFilterApplied(result.molecules, result);
@@ -109,7 +113,7 @@ const CoordinationFilter = ({ selectedFile, onFilterApplied, onStatsUpdate }) =>
       setMinCoordination(0);
       setMaxCoordination(12);
     }
-    setSelectedMetals([]);  // Reset anche i metalli selezionati
+    setSelectedMetals([]);
   };
 
   // Funzione per gestire la selezione/deselezione dei metalli
@@ -322,7 +326,7 @@ const CoordinationFilter = ({ selectedFile, onFilterApplied, onStatsUpdate }) =>
                         <div
                           className="bar-fill"
                           style={{
-                            width: `${(count / maxCount) * 100}%`, // Era (count / Math.max(...Object.values(...))) * 100
+                            width: `${(count / maxCount) * 100}%`,
                             backgroundColor: (parseInt(coord) >= minCoordination && parseInt(coord) <= maxCoordination)
                               ? '#007aff' : '#d2d2d7'
                           }}

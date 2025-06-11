@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import MoleculeViewer from './MoleculeViewer';
 import './MoleculeGrid.css';
 
-const MoleculeGrid = ({ molecules, newMoleculesCount = 0, validationResults }) => {
+const MoleculeGrid = ({ molecules, analysisResults, displayStats, validationResults, isFiltered, referenceFile }) => {
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedMolecule, setSelectedMolecule] = useState(null);
   const [viewerOpen, setViewerOpen] = useState(false);
@@ -10,7 +10,7 @@ const MoleculeGrid = ({ molecules, newMoleculesCount = 0, validationResults }) =
   const [modelError, setModelError] = useState(null);
 
   // Configurazione per il numero di molecole visualizzate
-  const itemsPerRow = 5; // Modificato a 5 molecole per riga
+  const itemsPerRow = 6;
   const rowsPerPage = 6;
   const itemsPerPage = itemsPerRow * rowsPerPage;
 
@@ -83,29 +83,102 @@ const MoleculeGrid = ({ molecules, newMoleculesCount = 0, validationResults }) =
     return `/api/molecule-2d/${encodeURIComponent(smiles)}`;
   };
 
+  // Funzione per ottenere le classi CSS per ogni molecola
+  const getMoleculeCardClasses = (molecule) => {
+    let classes = ['molecule-card'];
+    
+    if (isMoleculeValidated(molecule.smiles)) {
+      classes.push('validated-3d');
+    }
+    
+    if (!molecule.is_unique) {
+      classes.push('duplicate');
+    }
+    
+    if (referenceFile && !molecule.is_novel) {
+      classes.push('not-novel');
+    }
+    
+    return classes.join(' ');
+  };
+
   return (
     <div className="molecule-grid-container">
-      <div className="molecule-grid-info">
-        <p>
-          <span>
-            <span className='new-molecules'>Totale molecole uniche generate: {molecules.length}</span> |
-            <span className='unique-molecules'> Totale molecole nuove: {newMoleculesCount}</span>
-            {validationResults && (
-              <span className='validated-molecules'> | Validabili per 3D: {validationResults.valid_molecules}</span>
+      <div className="molecule-grid-header">
+        <div className="grid-title">
+          <h2>Risultati dell'Analisi</h2>
+          {isFiltered && <span className="filtered-indicator">🔍 Filtrate</span>}
+        </div>
+        
+        <div className="molecule-grid-info">
+          <div className="info-stats">
+            <span className="stat-display total">
+              <strong>{displayStats?.total || 0}</strong> molecole visualizzate
+            </span>
+            
+            <span className="stat-display unique">
+              <strong>{displayStats?.unique || 0}</strong> uniche
+            </span>
+            
+            {referenceFile && (
+              <span className="stat-display novel">
+                <strong>{displayStats?.novel || 0}</strong> novel
+              </span>
             )}
-          </span>
-          <span>
-            Visualizzazione di {Math.min(itemsPerPage, molecules.length - (currentPage - 1) * itemsPerPage)} molecole
-            (pagina {currentPage} di {totalPages})
-          </span>
-        </p>
+            
+            {validationResults && (
+              <span className="stat-display validated">
+                <strong>{validationResults.valid_molecules}</strong> validabili per 3D
+              </span>
+            )}
+          </div>
+          
+          <div className="pagination-info">
+            Pagina {currentPage} di {totalPages} 
+            ({Math.min(itemsPerPage, molecules.length - (currentPage - 1) * itemsPerPage)} molecole)
+          </div>
+        </div>
+      </div>
+
+      {/* Legenda per i simboli */}
+      <div className="molecule-legend">
+        <div className="legend-items">
+          <div className="legend-item">
+            <div className="legend-badge unique">U</div>
+            <span>Unica</span>
+          </div>
+          
+          {referenceFile && (
+            <div className="legend-item">
+              <div className="legend-badge novel">N</div>
+              <span>Novel</span>
+            </div>
+          )}
+          
+          <div className="legend-item">
+            <div className="legend-badge validated">✓</div>
+            <span>Validabile 3D</span>
+          </div>
+          
+          <div className="legend-item">
+            <div className="legend-badge duplicate">D</div>
+            <span>Duplicata</span>
+          </div>
+          
+          {referenceFile && (
+            <div className="legend-item">
+              <div className="legend-badge not-novel">K</div>
+              <span>Conosciuta</span>
+            </div>
+          )}
+        </div>
       </div>
 
       <div className="molecule-grid">
         {currentMolecules.map((molecule) => (
           <div
             key={molecule.id}
-            className={`molecule-card ${isMoleculeValidated(molecule.smiles) ? 'validated-3d' : ''}`}
+            className={getMoleculeCardClasses(molecule)}
             onClick={() => handleMoleculeClick(molecule)}
           >
             <div className="molecule-image">
@@ -117,23 +190,65 @@ const MoleculeGrid = ({ molecules, newMoleculesCount = 0, validationResults }) =
                   e.target.src = '/placeholder-molecule.png';
                 }}
               />
-              {isMoleculeValidated(molecule.smiles) && (
-                <div className="validation-badge">
-                  <span className="validation-icon">✓</span>
-                </div>
-              )}
+              
+              {/* Badge per le caratteristiche */}
+              <div className="molecule-badges">
+                {molecule.is_unique && (
+                  <div className="molecule-badge unique" title="Molecola unica">
+                    U
+                  </div>
+                )}
+                
+                {referenceFile && molecule.is_novel && (
+                  <div className="molecule-badge novel" title="Molecola novel (non presente nel riferimento)">
+                    N
+                  </div>
+                )}
+                
+                {isMoleculeValidated(molecule.smiles) && (
+                  <div className="molecule-badge validated" title="Molecola validabile per 3D">
+                    ✓
+                  </div>
+                )}
+                
+                {!molecule.is_unique && (
+                  <div className="molecule-badge duplicate" title="Molecola duplicata">
+                    D
+                  </div>
+                )}
+                
+                {referenceFile && !molecule.is_novel && (
+                  <div className="molecule-badge not-novel" title="Molecola conosciuta (presente nel riferimento)">
+                    K
+                  </div>
+                )}
+              </div>
             </div>
+            
             <div className="molecule-info">
-              <p title={molecule.smiles}>
-                {molecule.smiles.length > 20
-                  ? `${molecule.smiles.substring(0, 17)}...`
+              <p className="molecule-smiles" title={molecule.smiles}>
+                {molecule.smiles.length > 25
+                  ? `${molecule.smiles.substring(0, 22)}...`
                   : molecule.smiles}
               </p>
-              {isMoleculeValidated(molecule.smiles) && (
-                <div className="validation-status">
-                  3D Generabile
-                </div>
-              )}
+              
+              <div className="molecule-status">
+                {molecule.is_unique ? (
+                  <span className="status-unique">Unica</span>
+                ) : (
+                  <span className="status-duplicate">Duplicata</span>
+                )}
+                
+                {referenceFile && (
+                  <span className={molecule.is_novel ? "status-novel" : "status-known"}>
+                    {molecule.is_novel ? "Novel" : "Conosciuta"}
+                  </span>
+                )}
+                
+                {isMoleculeValidated(molecule.smiles) && (
+                  <span className="status-validated">3D OK</span>
+                )}
+              </div>
             </div>
           </div>
         ))}

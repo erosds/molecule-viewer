@@ -7,7 +7,7 @@ from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
-from typing import List, Optional
+from typing import List, Optional, Dict
 import uvicorn
 import logging
 from pathlib import Path
@@ -15,6 +15,7 @@ import tempfile
 from datetime import datetime
 import zipfile
 from fastapi.responses import StreamingResponse
+from rdkit import Chem
 
 # Importa le funzioni di utilità per le molecole
 from molecule_utils import smiles_to_3d, smiles_to_2d_image
@@ -48,6 +49,21 @@ class ValidationResponse(BaseModel):
     valid_smiles: List[str]
     invalid_smiles: List[str]
     processing_time: float
+
+class NoveltyAnalysisRequest(BaseModel):
+    main_file: str
+    reference_file: Optional[str] = None
+    
+class NoveltyAnalysisResponse(BaseModel):
+    total_molecules: int
+    valid_molecules: int
+    invalid_molecules: int
+    unique_molecules: int
+    novel_molecules: int
+    uniqueness_rate: float
+    novelty_rate: float
+    processing_time: float
+    molecules: List[Dict]  # Lista con info di novelty per ogni molecola
     
 class CoordinationFilterRequest(BaseModel):
     csv_file: str
@@ -97,6 +113,174 @@ def validate_single_smiles(smiles: str) -> bool:
     except Exception as e:
         logger.error(f"Errore nella validazione SMILES {smiles}: {str(e)}")
         return False
+
+def analyze_novelty_and_uniqueness(main_file: str, reference_file: Optional[str] = None) -> NoveltyAnalysisResponse:
+    """
+    Analizza unicità e novelty delle molecole secondo la logica dello script Python fornito.
+    """
+    import time
+    start_time = time.time()
+    
+    try:
+        # Leggi il file principale
+        main_file_path = os.path.join(CSV_DIR, main_file)
+        if not os.path.exists(main_file_path):
+            raise HTTPException(status_code=404, detail=f"File principale non trovato: {main_file}")
+        
+        input_smiles = []
+        with open(main_file_path, 'r') as f:
+            csv_reader = csv.reader(f)
+            headers = [h.lower() for h in next(csv_reader)]
+            
+            # Trova l'indice della colonna SMILES
+            smiles_index = None
+            for i, header in enumerate(headers):
+                if 'smiles' in header:
+                    smiles_index = i
+                    break
+            
+            if smiles_index is None:
+                raise ValueError(f"Nessuna colonna SMILES trovata nel file {main_file}")
+            
+            # Leggi tutti gli SMILES
+            for row in csv_reader:
+                if len(row) > smiles_index:
+                    smiles = row[smiles_index].strip()
+                    if smiles:
+                        input_smiles.append(smiles)
+        
+        # Leggi il file di riferimento se specificato
+        reference_smiles = []
+        if reference_file:
+            ref_file_path = os.path.join(CSV_DIR, reference_file)
+            if os.path.exists(ref_file_path):
+                with open(ref_file_path, 'r') as f:
+                    csv_reader = csv.reader(f)
+                    headers = [h.lower() for h in next(csv_reader)]
+                    
+                    # Trova l'indice della colonna SMILES
+                    smiles_index = None
+                    for i, header in enumerate(headers):
+                        if 'smiles' in header:
+                            smiles_index = i
+                            break
+                    
+                    if smiles_index is not None:
+                        for row in csv_reader:
+                            if len(row) > smiles_index:
+                                smiles = row[smiles_index].strip()
+                                if smiles:
+                                    reference_smiles.append(smiles)
+        
+        logger.info(f"Analisi di {len(input_smiles)} SMILES del file principale")
+        if reference_smiles:
+            logger.info(f"Confronto con {len(reference_smiles)} SMILES di riferimento")
+        
+        # Analisi unicità (canonicalizza gli SMILES)
+        unique_smiles = set()
+        valid_molecules = []
+        invalid_count = 0
+        
+        for i, smi in enumerate(input_smiles):
+            mol = Chem.MolFromSmiles(smi)
+            if mol is not None:
+                canonical_smi = Chem.MolToSmiles(mol)
+                unique_smiles.add(canonical_smi)
+                valid_molecules.append({
+                    'id': i,
+                    'original_smiles': smi,
+                    'canonical_smiles': canonical_smi,
+                    'is_valid': True
+                })
+            else:
+                invalid_count += 1
+                valid_molecules.append({
+                    'id': i,
+                    'original_smiles': smi,
+                    'canonical_smiles': None,
+                    'is_valid': False
+                })
+        
+        # Calcola uniqueness
+        uniqueness_rate = len(unique_smiles) / len(input_smiles) if len(input_smiles) > 0 else 0
+        
+        # Analisi novelty se abbiamo un riferimento
+        reference_unique = set()
+        novel_count = 0
+        novelty_rate = 0.0
+        
+        if reference_smiles:
+            # Canonicalizza gli SMILES di riferimento
+            for smi in reference_smiles:
+                mol = Chem.MolFromSmiles(smi)
+                if mol is not None:
+                    canonical_smi = Chem.MolToSmiles(mol)
+                    reference_unique.add(canonical_smi)
+            
+            # Conta le molecole novel
+            for smi in unique_smiles:
+                if smi not in reference_unique:
+                    novel_count += 1
+            
+            novelty_rate = novel_count / len(unique_smiles) if len(unique_smiles) > 0 else 0
+        
+        # Aggiungi informazioni di novelty alle molecole
+        molecules_with_novelty = []
+        unique_canonical_to_novel = {}
+        
+        # Prima determina quali molecole canoniche sono novel
+        if reference_smiles:
+            for canonical_smi in unique_smiles:
+                unique_canonical_to_novel[canonical_smi] = canonical_smi not in reference_unique
+        
+        # Poi aggiungi le informazioni a ogni molecola
+        seen_canonical = set()
+        for mol_info in valid_molecules:
+            if mol_info['is_valid']:
+                canonical = mol_info['canonical_smiles']
+                is_unique = canonical not in seen_canonical
+                is_novel = unique_canonical_to_novel.get(canonical, False) if reference_smiles else True
+                
+                molecules_with_novelty.append({
+                    'id': mol_info['id'],
+                    'smiles': mol_info['original_smiles'],
+                    'canonical_smiles': canonical,
+                    'is_valid': True,
+                    'is_unique': is_unique,
+                    'is_novel': is_novel
+                })
+                
+                seen_canonical.add(canonical)
+            else:
+                molecules_with_novelty.append({
+                    'id': mol_info['id'],
+                    'smiles': mol_info['original_smiles'],
+                    'canonical_smiles': None,
+                    'is_valid': False,
+                    'is_unique': False,
+                    'is_novel': False
+                })
+        
+        processing_time = time.time() - start_time
+        
+        logger.info(f"Analisi completata in {processing_time:.2f}s")
+        logger.info(f"Risultati: {len(valid_molecules) - invalid_count} valide, {len(unique_smiles)} uniche, {novel_count} novel")
+        
+        return NoveltyAnalysisResponse(
+            total_molecules=len(input_smiles),
+            valid_molecules=len(valid_molecules) - invalid_count,
+            invalid_molecules=invalid_count,
+            unique_molecules=len(unique_smiles),
+            novel_molecules=novel_count,
+            uniqueness_rate=uniqueness_rate,
+            novelty_rate=novelty_rate,
+            processing_time=round(processing_time, 2),
+            molecules=molecules_with_novelty
+        )
+        
+    except Exception as e:
+        logger.error(f"Errore nell'analisi di novelty: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Errore interno: {str(e)}")
 
 # Modelli di dati
 class SMILESRequest(BaseModel):
@@ -152,7 +336,21 @@ async def upload_csv_file(file: UploadFile = File(...)):
         logger.error(f"Errore nel caricamento del file: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Errore nel caricamento del file: {str(e)}")
 
-# Endpoint per ottenere le molecole da un file CSV
+# Nuovo endpoint per l'analisi di novelty e uniqueness
+@app.post("/api/analyze-novelty", response_model=NoveltyAnalysisResponse)
+async def analyze_novelty_endpoint(request: NoveltyAnalysisRequest):
+    """
+    Analizza unicità e novelty delle molecole confrontandole con un file di riferimento.
+    """
+    try:
+        return analyze_novelty_and_uniqueness(request.main_file, request.reference_file)
+    except HTTPException as he:
+        raise he
+    except Exception as e:
+        logger.error(f"Errore nell'analisi di novelty: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Errore interno: {str(e)}")
+
+# Endpoint per ottenere le molecole da un file CSV (deprecato, sostituito da analyze-novelty)
 @app.get("/api/molecules/{csv_file}")
 async def get_molecules_from_csv(csv_file: str):
     try:
@@ -718,7 +916,7 @@ async def get_batch_info(batch_folder: str):
 # Endpoint per salute dell'API
 @app.get("/api/health")
 async def health_check():
-    return {"status": "healthyss"}
+    return {"status": "healthy"}
 
 # Avvio dell'applicazione
 if __name__ == "__main__":
