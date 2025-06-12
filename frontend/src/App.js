@@ -301,7 +301,7 @@ function App() {
             <div className="loading-spinner"></div>
             <div className="loading-text">
               <h3>Calcolo statistiche in corso...</h3>
-              <p>Analisi di unicità e novelty delle molecole</p>
+              <p>Analisi di <b>unicità</b> e <b>novelty</b> delle molecole, potrebbero volerci <b>alcuni minuti</b></p>
               {referenceFile && <p>Confronto con file di riferimento: {referenceFile}</p>}
             </div>
           </div>
