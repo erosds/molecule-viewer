@@ -15,11 +15,17 @@ const MoleculeGrid = ({ molecules, analysisResults, displayStats, validationResu
   const rowsPerPage = 6;
   const itemsPerPage = itemsPerRow * rowsPerPage;
 
+  // Funzione per verificare se una molecola è validata per il 3D
+  const isMoleculeValidated = (smiles) => {
+    if (!validationResults) return false;
+    return validationResults.valid_smiles && validationResults.valid_smiles.includes(smiles);
+  };
+
   // Funzione per gestire i filtri badge con logica mutuamente esclusiva
   const handleBadgeFilterToggle = (badgeType) => {
     setActiveBadgeFilters(prev => {
       let newFilters = [...prev];
-      
+
       if (prev.includes(badgeType)) {
         // Se il filtro è già attivo, rimuovilo
         newFilters = newFilters.filter(type => type !== badgeType);
@@ -36,7 +42,7 @@ const MoleculeGrid = ({ molecules, analysisResults, displayStats, validationResu
         }
         newFilters.push(badgeType);
       }
-      
+
       return newFilters;
     });
   };
@@ -46,18 +52,18 @@ const MoleculeGrid = ({ molecules, analysisResults, displayStats, validationResu
     if (activeBadgeFilters.length === 0) {
       return molecules;
     }
-    
+
     return molecules.filter(molecule => {
       // Dividi i filtri per categoria
       const uniquenessFilter = activeBadgeFilters.find(f => f === 'unique' || f === 'duplicate');
       const noveltyFilter = activeBadgeFilters.find(f => f === 'novel' || f === 'not-novel');
       const validationFilter = activeBadgeFilters.includes('validated');
-      
+
       // Ogni categoria deve essere soddisfatta (AND)
       let passesUniqueness = true;
       let passesNovelty = true;
       let passesValidation = true;
-      
+
       if (uniquenessFilter) {
         if (uniquenessFilter === 'unique') {
           passesUniqueness = molecule.is_unique;
@@ -65,7 +71,7 @@ const MoleculeGrid = ({ molecules, analysisResults, displayStats, validationResu
           passesUniqueness = !molecule.is_unique;
         }
       }
-      
+
       if (noveltyFilter && referenceFile) {
         if (noveltyFilter === 'novel') {
           passesNovelty = molecule.is_novel;
@@ -73,11 +79,11 @@ const MoleculeGrid = ({ molecules, analysisResults, displayStats, validationResu
           passesNovelty = !molecule.is_novel;
         }
       }
-      
+
       if (validationFilter) {
         passesValidation = isMoleculeValidated(molecule.smiles);
       }
-      
+
       return passesUniqueness && passesNovelty && passesValidation;
     });
   };
@@ -98,12 +104,6 @@ const MoleculeGrid = ({ molecules, analysisResults, displayStats, validationResu
   React.useEffect(() => {
     setCurrentPage(1);
   }, [activeBadgeFilters]);
-
-  // Funzione per verificare se una molecola è validata per il 3D
-  const isMoleculeValidated = (smiles) => {
-    if (!validationResults) return false;
-    return validationResults.valid_smiles && validationResults.valid_smiles.includes(smiles);
-  };
 
   const handleMoleculeClick = async (molecule) => {
     setSelectedMolecule(molecule);
@@ -162,21 +162,25 @@ const MoleculeGrid = ({ molecules, analysisResults, displayStats, validationResu
   // Funzione per ottenere le classi CSS per ogni molecola
   const getMoleculeCardClasses = (molecule) => {
     let classes = ['molecule-card'];
-    
+
     if (isMoleculeValidated(molecule.smiles)) {
       classes.push('validated-3d');
     }
-    
+
     if (!molecule.is_unique) {
       classes.push('duplicate');
     }
-    
+
     if (referenceFile && !molecule.is_novel) {
       classes.push('not-novel');
     }
-    
+
     return classes.join(' ');
   };
+
+  const valid3DCount = validationResults
+  ? displayedMolecules.filter(mol => isMoleculeValidated(mol.smiles)).length
+  : 0;
 
   return (
     <div className="molecule-grid-container">
@@ -187,30 +191,30 @@ const MoleculeGrid = ({ molecules, analysisResults, displayStats, validationResu
             <span className="filtered-indicator">🔍 Filtrate</span>
           )}
         </div>
-        
+
         <div className="molecule-grid-info">
           <div className="info-stats">
             <span className="stat-display total">
               <strong>{displayedMolecules.length}</strong> molecole visualizzate
             </span>
-            
+
             <span className="stat-display unique">
               <strong>{displayStats?.unique || 0}</strong> uniche
             </span>
-            
+
             {referenceFile && (
               <span className="stat-display novel">
                 <strong>{displayStats?.novel || 0}</strong> novel
               </span>
             )}
-            
+
             {validationResults && (
               <span className="stat-display validated">
-                <strong>{validationResults.valid_count || 0}</strong> validabili 3D
+                <strong>{valid3DCount}</strong> validabili 3D
               </span>
             )}
           </div>
-          
+
           <span className="pagination-info">
             Pagina {currentPage} di {totalPages}
           </span>
@@ -219,7 +223,7 @@ const MoleculeGrid = ({ molecules, analysisResults, displayStats, validationResu
         {/* Sezione Filtri Badge */}
         <div className="molecule-legend">
           <div className="legend-items">
-            <div 
+            <div
               className={`legend-item ${activeBadgeFilters.includes('unique') ? 'active' : ''}`}
               onClick={() => handleBadgeFilterToggle('unique')}
             >
@@ -227,7 +231,7 @@ const MoleculeGrid = ({ molecules, analysisResults, displayStats, validationResu
               <span>Unica</span>
             </div>
 
-            <div 
+            <div
               className={`legend-item ${activeBadgeFilters.includes('duplicate') ? 'active' : ''}`}
               onClick={() => handleBadgeFilterToggle('duplicate')}
             >
@@ -237,7 +241,7 @@ const MoleculeGrid = ({ molecules, analysisResults, displayStats, validationResu
 
             {referenceFile && (
               <>
-                <div 
+                <div
                   className={`legend-item ${activeBadgeFilters.includes('novel') ? 'active' : ''}`}
                   onClick={() => handleBadgeFilterToggle('novel')}
                 >
@@ -245,7 +249,7 @@ const MoleculeGrid = ({ molecules, analysisResults, displayStats, validationResu
                   <span>New</span>
                 </div>
 
-                <div 
+                <div
                   className={`legend-item ${activeBadgeFilters.includes('not-novel') ? 'active' : ''}`}
                   onClick={() => handleBadgeFilterToggle('not-novel')}
                 >
@@ -256,7 +260,7 @@ const MoleculeGrid = ({ molecules, analysisResults, displayStats, validationResu
             )}
 
             {validationResults && (
-              <div 
+              <div
                 className={`legend-item ${activeBadgeFilters.includes('validated') ? 'active' : ''}`}
                 onClick={() => handleBadgeFilterToggle('validated')}
               >
@@ -265,18 +269,18 @@ const MoleculeGrid = ({ molecules, analysisResults, displayStats, validationResu
               </div>
             )}
           </div>
-          
+
           {activeBadgeFilters.length > 0 && (
-            <button 
+            <button
               onClick={() => setActiveBadgeFilters([])}
-              style={{ 
-                marginTop: '1rem', 
-                padding: '0.5rem 1rem', 
-                background: '#dc3545', 
-                color: 'white', 
-                border: 'none', 
-                borderRadius: '6px', 
-                cursor: 'pointer' 
+              style={{
+                marginTop: '1rem',
+                padding: '0.5rem 1rem',
+                background: '#dc3545',
+                color: 'white',
+                border: 'none',
+                borderRadius: '6px',
+                cursor: 'pointer'
               }}
             >
               Rimuovi tutti i filtri
@@ -302,7 +306,7 @@ const MoleculeGrid = ({ molecules, analysisResults, displayStats, validationResu
                   e.target.src = '/placeholder-molecule.png';
                 }}
               />
-              
+
               {/* Badge per le caratteristiche */}
               <div className="molecule-badges">
                 {molecule.is_unique && (
@@ -310,25 +314,25 @@ const MoleculeGrid = ({ molecules, analysisResults, displayStats, validationResu
                     U
                   </div>
                 )}
-                
+
                 {referenceFile && molecule.is_novel && (
                   <div className="molecule-badge novel" title="Molecola novel (non presente nel riferimento)">
                     N
                   </div>
                 )}
-                
+
                 {isMoleculeValidated(molecule.smiles) && (
                   <div className="molecule-badge validated" title="Molecola validabile per 3D">
                     ✓
                   </div>
                 )}
-                
+
                 {!molecule.is_unique && (
                   <div className="molecule-badge duplicate" title="Molecola duplicata">
                     D
                   </div>
                 )}
-                
+
                 {referenceFile && !molecule.is_novel && (
                   <div className="molecule-badge not-novel" title="Molecola conosciuta (presente nel riferimento)">
                     O
@@ -336,27 +340,27 @@ const MoleculeGrid = ({ molecules, analysisResults, displayStats, validationResu
                 )}
               </div>
             </div>
-            
+
             <div className="molecule-info">
               <p className="molecule-smiles" title={molecule.smiles}>
                 {molecule.smiles.length > 25
                   ? `${molecule.smiles.substring(0, 22)}...`
                   : molecule.smiles}
               </p>
-              
+
               <div className="molecule-status">
                 {molecule.is_unique ? (
                   <span className="status-unique">Unica</span>
                 ) : (
                   <span className="status-duplicate">Duplicata</span>
                 )}
-                
+
                 {referenceFile && (
                   <span className={molecule.is_novel ? "status-novel" : "status-known"}>
                     {molecule.is_novel ? "Novel" : "Conosciuta"}
                   </span>
                 )}
-                
+
                 {isMoleculeValidated(molecule.smiles) && (
                   <span className="status-validated">3D OK</span>
                 )}
