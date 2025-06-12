@@ -34,7 +34,6 @@ const FileSelector = ({ onSelectFile, selectedFile, type = "main", label }) => {
   return (
     <div className="file-selector">
       <div className="file-selector-container">
-        <label htmlFor={`csv-file-${type}`}>{label || "Seleziona un file CSV:"}</label>
         {loading ? (
           <div className="file-selector-loading">Caricamento file disponibili...</div>
         ) : error ? (

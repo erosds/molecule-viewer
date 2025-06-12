@@ -108,6 +108,23 @@
   gap: 0.5rem;
   font-size: 0.85rem;
   color: var(--text-secondary);
+  padding: 0.5rem;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  border: 2px solid transparent;
+}
+
+.legend-item:hover {
+  background-color: rgba(0, 122, 255, 0.1);
+  transform: translateY(-1px);
+}
+
+.legend-item.active {
+  background-color: rgba(0, 122, 255, 0.15);
+  border-color: var(--primary-color);
+  color: var(--primary-color);
+  font-weight: 600;
 }
 
 .legend-badge {
@@ -203,7 +220,7 @@
 }
 
 .molecule-card.not-novel {
-  border-color: #ffc107;
+  border-color: #dc3545;
 }
 
 /* Immagine della molecola */
@@ -541,7 +558,7 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: linear-gradient(45deg, transparent 40%, rgba(255, 193, 7, 0.1) 50%, transparent 60%);
+  background: linear-gradient(45deg, transparent 40%, rgba(255, 65, 7, 0.1) 50%, transparent 60%);
   pointer-events: none;
   z-index: 1;
 }
@@ -556,6 +573,3 @@
   box-shadow: 0 8px 16px rgba(108, 117, 125, 0.3);
 }
 
-.molecule-card.not-novel:hover {
-  box-shadow: 0 8px 16px rgba(255, 193, 7, 0.3);
-}

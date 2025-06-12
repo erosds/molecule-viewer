@@ -55,18 +55,18 @@ body {
   letter-spacing: -0.02em;
 }
 
-/* Sidebar */
 .app-sidebar {
   position: fixed;
-  top: 80px; /* Altezza header */
-  left: 0;
-  width: var(--sidebar-width);
-  height: calc(100vh - 80px);
+  top: 110px;
+  left: 10px; /* Aggiungi margine dal bordo sinistro */
+  width: calc(var(--sidebar-width)); /* Riduci larghezza per compensare il margine */
+  height: calc(100vh - 140px); /* Riduci altezza per dare spazio anche in basso */
   background-color: var(--surface-color);
-  border-right: 1px solid var(--border-color);
-  overflow-y: auto;
+  border: 1px solid var(--border-color); /* Cambia da border-right a border completo */
+  border-radius: 12px;
+  box-shadow: 0 4px 20px var(--shadow-color); /* Aumenta l'ombra per l'effetto flottante */
+  overflow: hidden;
   z-index: 50;
-  box-shadow: 2px 0 8px var(--shadow-color);
 }
 
 .sidebar-content {
@@ -74,12 +74,15 @@ body {
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
+  height: 100%;
+  overflow-y: auto; /* Sposta lo scroll qui */
+  border-radius: 12px; /* Eredita il bordo arrotondato */
 }
 
 /* Contenuto principale */
 .app-content {
-  margin-left: var(--sidebar-width);
-  margin-top: 80px; /* Altezza header */
+  margin-left: var(--sidebar-width); /* Mantieni lo stesso margine */
+  margin-top: 80px;
   padding: 2rem;
   flex: 1;
   min-height: calc(100vh - 80px);

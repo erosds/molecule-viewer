@@ -158,7 +158,7 @@ function App() {
     <div className="app">
       {/* Header */}
       <header className="app-header">
-        <h1>Visualizzatore Molecole</h1>
+        <h1>Visualizzatore Molecole Generate</h1>
       </header>
 
       {/* Sidebar */}
@@ -174,7 +174,6 @@ function App() {
               onSelectFile={handleReferenceFileSelect}
               selectedFile={referenceFile}
               type="reference"
-              label="Molecole di riferimento:"
             />
           </div>
 
@@ -188,7 +187,6 @@ function App() {
               onSelectFile={handleFileSelect}
               selectedFile={selectedFile}
               type="main"
-              label="File CSV molecole:"
             />
           </div>
 
@@ -328,7 +326,7 @@ function App() {
         ) : (
           <div className="instructions">
             <h2>Benvenuto nel Visualizzatore Molecole</h2>
-            <p>Seleziona un file CSV contenente strutture molecolari SMILES dalla sidebar per iniziare l'analisi.</p>
+            <p>Seleziona un file CSV contenente SMILES dalla sidebar per iniziare l'analisi.</p>
             <div className="instructions-details">
               <h3>Funzionalità disponibili:</h3>
               <ul>
