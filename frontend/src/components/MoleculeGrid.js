@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import MoleculeViewer from './MoleculeViewer';
 import './MoleculeGrid.css';
 
@@ -9,6 +9,9 @@ const MoleculeGrid = ({ molecules, analysisResults, displayStats, validationResu
   const [loading3D, setLoading3D] = useState(false);
   const [modelError, setModelError] = useState(null);
   const [activeBadgeFilters, setActiveBadgeFilters] = useState([]);
+  
+  // Ref per tenere traccia della richiesta in corso
+  const abortControllerRef = useRef(null);
 
   // Configurazione per il numero di molecole visualizzate
   const itemsPerRow = 6;
@@ -105,13 +108,34 @@ const MoleculeGrid = ({ molecules, analysisResults, displayStats, validationResu
     setCurrentPage(1);
   }, [activeBadgeFilters]);
 
+  // Funzione per cancellare la richiesta in corso
+  const cancelCurrentRequest = () => {
+    if (abortControllerRef.current) {
+      console.log('Cancellazione richiesta 3D in corso...');
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+    }
+  };
+
   const handleMoleculeClick = async (molecule) => {
+    // Cancella eventuali richieste precedenti
+    cancelCurrentRequest();
+    
     setSelectedMolecule(molecule);
     setViewerOpen(true);
     setLoading3D(true);
     setModelError(null);
 
+    // Crea un nuovo AbortController per questa richiesta
+    const abortController = new AbortController();
+    abortControllerRef.current = abortController;
+
     try {
+      // Aggiungi un timeout per evitare richieste infinite
+      const timeoutId = setTimeout(() => {
+        abortController.abort();
+      }, 3000); // 3 secondi di timeout
+
       // Richiesta al backend per generare il modello 3D
       const response = await fetch(`/api/generate-3d`, {
         method: 'POST',
@@ -119,7 +143,11 @@ const MoleculeGrid = ({ molecules, analysisResults, displayStats, validationResu
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ smiles: molecule.smiles }),
+        signal: abortController.signal // Passa il signal per permettere la cancellazione
       });
+
+      // Cancella il timeout se la richiesta è completata con successo
+      clearTimeout(timeoutId);
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -130,17 +158,48 @@ const MoleculeGrid = ({ molecules, analysisResults, displayStats, validationResu
       const data = await response.json();
       molecule.modelPath = data.model_path;
 
+      // Verifica se la richiesta è ancora valida (non cancellata)
+      if (!abortController.signal.aborted) {
+        console.log('Modello 3D generato con successo:', data.model_path);
+      }
+
     } catch (err) {
-      setModelError(`Errore: ${err.message}`);
+      // Gestisci diversi tipi di errore
+      if (err.name === 'AbortError') {
+        console.log('Richiesta 3D cancellata dall\'utente');
+        setModelError('Generazione 3D cancellata');
+      } else if (err.message.includes('timeout')) {
+        setModelError('Timeout: La generazione 3D sta impiegando troppo tempo');
+      } else {
+        setModelError(`Errore: ${err.message}`);
+      }
     } finally {
-      setLoading3D(false);
+      // Pulisci solo se questa è ancora la richiesta corrente
+      if (abortControllerRef.current === abortController) {
+        setLoading3D(false);
+        abortControllerRef.current = null;
+      }
     }
   };
 
   const closeViewer = () => {
+    // Cancella la richiesta in corso quando si chiude il viewer
+    cancelCurrentRequest();
+    
     setViewerOpen(false);
     setSelectedMolecule(null);
+    setLoading3D(false);
+    setModelError(null);
+    
+    console.log('Viewer chiuso e richieste cancellate');
   };
+
+  // Cleanup quando il componente viene smontato
+  React.useEffect(() => {
+    return () => {
+      cancelCurrentRequest();
+    };
+  }, []);
 
   const nextPage = () => {
     if (currentPage < totalPages) {

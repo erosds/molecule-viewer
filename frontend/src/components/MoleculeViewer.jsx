@@ -9,6 +9,8 @@ const MoleculeViewer = ({ molecule, onClose, loading, error }) => {
   const viewerRef = useRef(null);
   const viewer3DRef = useRef(null);
   const [isDownloading, setIsDownloading] = useState(false);
+  const [downloadError, setDownloadError] = useState(null);
+  const downloadAbortRef = useRef(null);
 
   useEffect(() => {
     // Pulizia del visualizzatore 3D quando il componente viene smontato
@@ -21,21 +23,45 @@ const MoleculeViewer = ({ molecule, onClose, loading, error }) => {
           console.error("Errore durante la pulizia del visualizzatore:", err);
         }
       }
+      
+      // Cancella eventuali download in corso
+      if (downloadAbortRef.current) {
+        downloadAbortRef.current.abort();
+      }
     };
   }, []);
 
-  // Funzione per il download del file XYZ
+  // Funzione per il download del file XYZ con cancellazione
   const handleDownloadXYZ = async () => {
     if (!molecule.modelPath || isDownloading) return;
 
+    // Cancella eventuali download precedenti
+    if (downloadAbortRef.current) {
+      downloadAbortRef.current.abort();
+    }
+
     setIsDownloading(true);
+    setDownloadError(null);
+    
+    // Crea un nuovo AbortController per il download
+    const abortController = new AbortController();
+    downloadAbortRef.current = abortController;
     
     try {
       // Estrai il nome del file dal percorso
       const filename = molecule.modelPath.split('/').pop();
       
+      // Timeout per il download (15 secondi)
+      const timeoutId = setTimeout(() => {
+        abortController.abort();
+      }, 15000);
+      
       // Effettua la richiesta di download
-      const response = await fetch(`/api/download-xyz/${filename}`);
+      const response = await fetch(`/api/download-xyz/${filename}`, {
+        signal: abortController.signal
+      });
+      
+      clearTimeout(timeoutId);
       
       if (!response.ok) {
         throw new Error(`Errore nel download: ${response.status}`);
@@ -43,6 +69,11 @@ const MoleculeViewer = ({ molecule, onClose, loading, error }) => {
       
       // Crea un blob dal contenuto della risposta
       const blob = await response.blob();
+      
+      // Verifica se il download è stato cancellato
+      if (abortController.signal.aborted) {
+        return;
+      }
       
       // Crea un URL temporaneo per il blob
       const url = window.URL.createObjectURL(blob);
@@ -60,11 +91,31 @@ const MoleculeViewer = ({ molecule, onClose, loading, error }) => {
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
       
+      console.log(`File ${filename} scaricato con successo`);
+      
     } catch (err) {
-      console.error("Errore durante il download:", err);
-      alert(`Errore durante il download del file: ${err.message}`);
+      if (err.name === 'AbortError') {
+        console.log("Download cancellato dall'utente");
+        setDownloadError("Download cancellato");
+      } else {
+        console.error("Errore durante il download:", err);
+        setDownloadError(`Errore durante il download: ${err.message}`);
+      }
     } finally {
       setIsDownloading(false);
+      downloadAbortRef.current = null;
+      
+      // Pulisci l'errore dopo qualche secondo
+      setTimeout(() => {
+        setDownloadError(null);
+      }, 3000);
+    }
+  };
+
+  // Funzione per cancellare il download in corso
+  const cancelDownload = () => {
+    if (downloadAbortRef.current) {
+      downloadAbortRef.current.abort();
     }
   };
 
@@ -103,8 +154,17 @@ const MoleculeViewer = ({ molecule, onClose, loading, error }) => {
         // Creiamo il visualizzatore
         viewer3DRef.current = $3Dmol.createViewer(viewerRef.current, config);
 
-        // Carichiamo il modello dal percorso
-        fetch(molecule.modelPath)
+        // Carichiamo il modello dal percorso con timeout
+        const loadModelWithTimeout = () => {
+          return Promise.race([
+            fetch(molecule.modelPath),
+            new Promise((_, reject) => 
+              setTimeout(() => reject(new Error('Timeout nel caricamento del modello 3D')), 10000)
+            )
+          ]);
+        };
+
+        loadModelWithTimeout()
           .then(response => {
             if (!response.ok) {
               throw new Error(`Errore nella richiesta HTTP: ${response.status}`);
@@ -197,12 +257,16 @@ const MoleculeViewer = ({ molecule, onClose, loading, error }) => {
             }, 100);
           })
           .catch(err => {
-            console.error("Errore nel caricamento del modello PDB:", err);
+            console.error("Errore nel caricamento del modello:", err);
             if (viewerRef.current) {
+              const errorMessage = err.message.includes('Timeout') 
+                ? 'Timeout nel caricamento del modello 3D'
+                : `Errore nel caricamento del modello: ${err.message}`;
+              
               viewerRef.current.innerHTML = `
                 <div class="error-message">
-                  <p>Errore nel caricamento del modello:</p>
-                  <p>${err.message}</p>
+                  <p>${errorMessage}</p>
+                  <p>Prova a ricaricare o contatta il supporto se il problema persiste.</p>
                 </div>
               `;
             }
@@ -220,6 +284,15 @@ const MoleculeViewer = ({ molecule, onClose, loading, error }) => {
       }
     }
   }, [loading, error, molecule]);
+
+  // Funzione migliorata per la chiusura
+  const handleClose = () => {
+    // Cancella il download se in corso
+    cancelDownload();
+    
+    // Chiama la funzione di chiusura del parent
+    onClose();
+  };
 
   // Renderizziamo un semplice visualizzatore se la libreria 3D non è disponibile
   const renderFallbackViewer = () => {
@@ -246,25 +319,44 @@ const MoleculeViewer = ({ molecule, onClose, loading, error }) => {
           <div className="molecule-header-actions">
             {/* Pulsante Download XYZ */}
             {!loading && !error && molecule.modelPath && (
-              <button 
-                className="download-xyz-button"
-                onClick={handleDownloadXYZ}
-                disabled={isDownloading}
-                title="Scarica file XYZ"
-              >
-                {isDownloading ? (
-                  <>
-                    <div className="download-spinner"></div>
-                    Download...
-                  </>
-                ) : (
-                  <>
-                    📁 Scarica XYZ
-                  </>
+              <div className="download-section">
+                <button 
+                  className="download-xyz-button"
+                  onClick={handleDownloadXYZ}
+                  disabled={isDownloading}
+                  title="Scarica file XYZ"
+                >
+                  {isDownloading ? (
+                    <>
+                      <div className="download-spinner"></div>
+                      Download...
+                      <button 
+                        className="cancel-download-btn"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          cancelDownload();
+                        }}
+                        title="Annulla download"
+                      >
+                        ✕
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      📁 Scarica XYZ
+                    </>
+                  )}
+                </button>
+                
+                {/* Messaggio di errore per il download */}
+                {downloadError && (
+                  <div className="download-error">
+                    {downloadError}
+                  </div>
                 )}
-              </button>
+              </div>
             )}
-            <button className="close-button" onClick={onClose}>×</button>
+            <button className="close-button" onClick={handleClose}>×</button>
           </div>
         </div>
 
@@ -273,11 +365,31 @@ const MoleculeViewer = ({ molecule, onClose, loading, error }) => {
             <div className="loading-container">
               <div className="loading-spinner"></div>
               <p>Generazione del modello 3D in corso...</p>
+              <button 
+                className="cancel-generation-btn"
+                onClick={handleClose}
+                style={{
+                  marginTop: '1rem',
+                  padding: '0.5rem 1rem',
+                  background: '#dc3545',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: 'pointer'
+                }}
+              >
+                Annulla generazione
+              </button>
             </div>
           ) : error ? (
             <div className="error-container">
               <p>{error}</p>
               <p>Impossibile generare il modello 3D per questa molecola.</p>
+              {error.includes('cancellata') && (
+                <p style={{ color: '#666', fontSize: '0.9em' }}>
+                  La generazione è stata interrotta dall'utente.
+                </p>
+              )}
             </div>
           ) : (
             <>
