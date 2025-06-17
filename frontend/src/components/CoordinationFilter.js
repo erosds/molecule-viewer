@@ -1,4 +1,4 @@
-// CoordinationFilter.js - Aggiornato per l'integrazione con l'analisi di novelty
+// CoordinationFilter.js - Aggiornato con il bottone "Senza Metalli"
 
 import React, { useState, useEffect } from 'react';
 import './CoordinationFilter.css';
@@ -12,7 +12,6 @@ const CoordinationFilter = ({ selectedFile, onFilterApplied, onStatsUpdate }) =>
   const [isFiltering, setIsFiltering] = useState(false);
   const [error, setError] = useState(null);
   const [includeNonMetalMolecules, setIncludeNonMetalMolecules] = useState(false);
-
 
   // Carica le statistiche quando cambia il file selezionato
   useEffect(() => {
@@ -70,36 +69,49 @@ const CoordinationFilter = ({ selectedFile, onFilterApplied, onStatsUpdate }) =>
     setError(null);
 
     try {
-      const requestBody = {
-        csv_file: selectedFile,
-        min_coordination: minCoordination === '' ? 0 : minCoordination,
-        max_coordination: maxCoordination === '' ? 12 : maxCoordination,
-        include_non_metal_molecules: includeNonMetalMolecules  // Aggiungi questa riga
-      };
+      let response;
+      let result;
 
-      // Aggiungi i metalli selezionati solo se ce ne sono E se non stiamo includendo molecole senza metalli
-      if (selectedMetals.length > 0 && !includeNonMetalMolecules) {
-        requestBody.selected_metals = selectedMetals;
+      if (includeNonMetalMolecules) {
+        // Se vogliamo solo molecole senza metalli, usa l'endpoint dedicato
+        response = await fetch('/api/filter-non-metal-molecules', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            csv_file: selectedFile
+          }),
+        });
+      } else {
+        // Filtro normale per molecole con metalli
+        const requestBody = {
+          csv_file: selectedFile,
+          min_coordination: minCoordination === '' ? 0 : minCoordination,
+          max_coordination: maxCoordination === '' ? 12 : maxCoordination,
+          include_non_metal_molecules: false
+        };
+
+        // Aggiungi i metalli selezionati solo se ce ne sono
+        if (selectedMetals.length > 0) {
+          requestBody.selected_metals = selectedMetals;
+        }
+
+        response = await fetch('/api/filter-by-coordination', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(requestBody),
+        });
       }
-
-      const response = await fetch('/api/filter-by-coordination', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(requestBody),
-      });
 
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.detail || 'Errore nel filtro');
       }
 
-      const result = await response.json();
-
-      // IMPORTANTE: Le molecole filtrate dal backend non hanno le proprietà di novelty
-      // Dobbiamo mantenerle dalle molecole originali se disponibili
-      // Questo sarà gestito dal componente padre (App.js) che ha accesso ai dati completi
+      result = await response.json();
 
       // Comunica i risultati al componente padre
       if (onFilterApplied) {
@@ -122,7 +134,7 @@ const CoordinationFilter = ({ selectedFile, onFilterApplied, onStatsUpdate }) =>
       setMaxCoordination(12);
     }
     setSelectedMetals([]);
-    setIncludeNonMetalMolecules(false);  // Aggiungi questa riga
+    setIncludeNonMetalMolecules(false);
   };
 
   // Funzione per gestire la selezione/deselezione dei metalli
@@ -133,6 +145,18 @@ const CoordinationFilter = ({ selectedFile, onFilterApplied, onStatsUpdate }) =>
       } else {
         return [...prev, metal];
       }
+    });
+  };
+
+  // Funzione per gestire il toggle del filtro "senza metalli"
+  const toggleNonMetalFilter = () => {
+    setIncludeNonMetalMolecules(prev => {
+      const newValue = !prev;
+      // Se attiviamo il filtro "senza metalli", deseleziona tutti i metalli
+      if (newValue) {
+        setSelectedMetals([]);
+      }
+      return newValue;
     });
   };
 
@@ -162,6 +186,8 @@ const CoordinationFilter = ({ selectedFile, onFilterApplied, onStatsUpdate }) =>
   const selectAllMetals = () => {
     if (coordinationStats && coordinationStats.metal_elements_found) {
       setSelectedMetals([...coordinationStats.metal_elements_found]);
+      // Se selezioniamo metalli, disattiviamo il filtro "senza metalli"
+      setIncludeNonMetalMolecules(false);
     }
   };
 
@@ -199,17 +225,13 @@ const CoordinationFilter = ({ selectedFile, onFilterApplied, onStatsUpdate }) =>
         <>
           <div className="coordination-stats">
             <div className="stats-grid">
-              <div className="stat-item">
-                <div className="stat-number">{coordinationStats.total_molecules}</div>
-                <div className="stat-label">Molecole Totali</div>
-              </div>
               <div className="stat-item metal">
                 <div className="stat-number">{coordinationStats.molecules_with_metals}</div>
-                <div className="stat-label">Con Metalli</div>
+                <div className="stat-label">Con Metalli Riconosciuti</div>
               </div>
-              <div className="stat-item metal">
+              <div className="stat-item unique">
                 <div className="stat-number">{coordinationStats.molecules_without_metals}</div>
-                <div className="stat-label">Senza Metalli</div>
+                <div className="stat-label">Senza Metalli Riconosciuti</div>
               </div>
             </div>
           </div>
@@ -223,7 +245,7 @@ const CoordinationFilter = ({ selectedFile, onFilterApplied, onStatsUpdate }) =>
                   <button
                     className="metal-control-button select-all"
                     onClick={selectAllMetals}
-                    disabled={isFiltering}
+                    disabled={isFiltering || includeNonMetalMolecules}
                   >
                     ✓ Tutti
                   </button>
@@ -241,17 +263,29 @@ const CoordinationFilter = ({ selectedFile, onFilterApplied, onStatsUpdate }) =>
                 {coordinationStats.metal_elements_found.map(metal => (
                   <button
                     key={metal}
-                    className={`metal-toggle ${selectedMetals.includes(metal) ? 'selected' : ''}`}
+                    className={`metal-toggle ${selectedMetals.includes(metal) ? 'selected' : ''} ${includeNonMetalMolecules ? 'disabled' : ''}`}
                     onClick={() => toggleMetal(metal)}
-                    disabled={isFiltering}
+                    disabled={isFiltering || includeNonMetalMolecules}
                   >
                     <span className="metal-symbol">{metal}</span>
                     {selectedMetals.includes(metal) && <span className="check-mark">✓</span>}
                   </button>
                 ))}
+                
+                {/* Bottone "Senza Metalli" alla fine della griglia */}
+                <button
+                  className={`metal-toggle no-metals ${includeNonMetalMolecules ? 'selected' : ''}`}
+                  onClick={toggleNonMetalFilter}
+                  disabled={isFiltering}
+                  title="Filtra solo molecole senza metalli"
+                >
+                  <span className="metal-symbol">∅</span>
+                  <span className="no-metals-label">Senza Metalli Riconosciuti</span>
+                  {includeNonMetalMolecules && <span className="check-mark">✓</span>}
+                </button>
               </div>
 
-              {selectedMetals.length > 0 && (
+              {selectedMetals.length > 0 && !includeNonMetalMolecules && (
                 <div className="selected-metals-info">
                   <span className="selected-label">
                     Metalli selezionati ({selectedMetals.length}):
@@ -265,9 +299,16 @@ const CoordinationFilter = ({ selectedFile, onFilterApplied, onStatsUpdate }) =>
                   </div>
                 </div>
               )}
+
+              {includeNonMetalMolecules && (
+                <div className="selected-metals-info">
+                  <span className="selected-label">
+                    Filtro attivo: Solo molecole senza metalli riconosciuti
+                  </span>
+                </div>
+              )}
             </div>
           )}
-
 
           <div className="coordination-filter-controls">
             <div className="filter-inputs">
