@@ -127,6 +127,28 @@ const CoordinationFilter = ({ selectedFile, onFilterApplied, onStatsUpdate }) =>
     });
   };
 
+  // Funzione di utilità per calcolare la distribuzione sulle molecole filtrate per metallo
+  const getFilteredCoordinationDistribution = () => {
+    if (!coordinationStats || !coordinationStats.molecules) return {};
+
+    // Filtra le molecole per i metalli selezionati (se nessuno selezionato, usa tutte)
+    const filteredMolecules = selectedMetals.length > 0
+      ? coordinationStats.molecules.filter(mol =>
+        mol.metals && mol.metals.some(metal => selectedMetals.includes(metal))
+      )
+      : coordinationStats.molecules;
+
+    // Calcola la distribuzione
+    const distribution = {};
+    filteredMolecules.forEach(mol => {
+      const n = mol.max_coordination;
+      if (n != null) {
+        distribution[n] = (distribution[n] || 0) + 1;
+      }
+    });
+    return { distribution, total: filteredMolecules.length };
+  };
+
   // Funzione per selezionare tutti i metalli
   const selectAllMetals = () => {
     if (coordinationStats && coordinationStats.metal_elements_found) {
@@ -312,28 +334,39 @@ const CoordinationFilter = ({ selectedFile, onFilterApplied, onStatsUpdate }) =>
             </div>
           </div>
 
-          {Object.keys(coordinationStats.coordination_distribution).length > 0 && (
+          {coordinationStats && coordinationStats.coordination_distribution && (
             <div className="coordination-distribution">
               <h4>Distribuzione Numero di Coordinazione:</h4>
               <div className="distribution-chart">
                 {(() => {
-                  const maxCount = Math.max(...Object.values(coordinationStats.coordination_distribution));
-                  return Object.entries(coordinationStats.coordination_distribution)
-                    .sort(([a], [b]) => parseInt(a) - parseInt(b))
-                    .map(([coord, count]) => (
+                  // Usa la distribuzione filtrata se ci sono metalli selezionati, altrimenti quella globale
+                  let distribution, total;
+                  if (coordinationStats.molecules && selectedMetals.length > 0) {
+                    ({ distribution, total } = getFilteredCoordinationDistribution());
+                  } else {
+                    distribution = coordinationStats.coordination_distribution;
+                    total = Object.values(distribution).reduce((a, b) => a + b, 0);
+                  }
+                  const allCoords = Object.keys(coordinationStats.coordination_distribution)
+                    .sort((a, b) => parseInt(a) - parseInt(b));
+                  return allCoords.map(coord => {
+                    const count = distribution[coord] || 0;
+                    const percent = total > 0 ? (count / total) * 100 : 0;
+                    return (
                       <div key={coord} className="distribution-bar">
                         <div className="bar-label">{coord}</div>
                         <div
                           className="bar-fill"
                           style={{
-                            width: `${(count / maxCount) * 100}%`,
+                            width: `${percent}%`,
                             backgroundColor: (parseInt(coord) >= minCoordination && parseInt(coord) <= maxCoordination)
                               ? '#007aff' : '#d2d2d7'
                           }}
                         ></div>
                         <div className="bar-count">{count}</div>
                       </div>
-                    ));
+                    );
+                  });
                 })()}
               </div>
             </div>

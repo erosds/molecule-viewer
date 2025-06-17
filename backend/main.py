@@ -78,12 +78,6 @@ class CoordinationAnalysisResponse(BaseModel):
     filtered_molecules: int
     coordination_distribution: Dict[int, int]  # numero_coordinazione -> conteggio
     molecules: List[Dict]
-    
-class CoordinationFilterRequest(BaseModel):
-    csv_file: str
-    min_coordination: int = 0
-    max_coordination: int = 12
-    selected_metals: Optional[List[str]] = None  # Nuova opzione per filtrare per metalli
 
 
 # Funzione helper per validazione veloce di una singola molecola
@@ -635,17 +629,22 @@ async def get_coordination_statistics(csv_file: str):
         metal_elements = set()
         molecules_with_metals = 0
         
+        molecule_records = []
         for smiles in molecules:
             coord_info = analyze_metal_coordination(smiles)
             if coord_info['has_metal']:
                 molecules_with_metals += 1
                 max_coord = coord_info['max_coordination']
                 coordination_stats[max_coord] = coordination_stats.get(max_coord, 0) + 1
-                
-                # Raccogli i tipi di metalli
                 for metal in coord_info['metal_atoms']:
                     metal_elements.add(metal['symbol'])
-        
+                # Salva info per il frontend
+                molecule_records.append({
+                    "smiles": smiles,
+                    "max_coordination": max_coord,
+                    "metals": [m['symbol'] for m in coord_info['metal_atoms']]
+                })
+
         return {
             "total_molecules": len(molecules),
             "molecules_with_metals": molecules_with_metals,
@@ -654,7 +653,8 @@ async def get_coordination_statistics(csv_file: str):
             "coordination_range": {
                 "min": min(coordination_stats.keys()) if coordination_stats else 0,
                 "max": max(coordination_stats.keys()) if coordination_stats else 0
-            }
+            },
+            "molecules": molecule_records  # <--- AGGIUNGI QUESTO
         }
         
     except HTTPException as he:
