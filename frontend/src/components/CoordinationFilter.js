@@ -11,6 +11,8 @@ const CoordinationFilter = ({ selectedFile, onFilterApplied, onStatsUpdate }) =>
   const [isLoading, setIsLoading] = useState(false);
   const [isFiltering, setIsFiltering] = useState(false);
   const [error, setError] = useState(null);
+  const [includeNonMetalMolecules, setIncludeNonMetalMolecules] = useState(false);
+
 
   // Carica le statistiche quando cambia il file selezionato
   useEffect(() => {
@@ -66,11 +68,12 @@ const CoordinationFilter = ({ selectedFile, onFilterApplied, onStatsUpdate }) =>
       const requestBody = {
         csv_file: selectedFile,
         min_coordination: minCoordination === '' ? 0 : minCoordination,
-        max_coordination: maxCoordination === '' ? 12 : maxCoordination
+        max_coordination: maxCoordination === '' ? 12 : maxCoordination,
+        include_non_metal_molecules: includeNonMetalMolecules  // Aggiungi questa riga
       };
 
-      // Aggiungi i metalli selezionati solo se ce ne sono
-      if (selectedMetals.length > 0) {
+      // Aggiungi i metalli selezionati solo se ce ne sono E se non stiamo includendo molecole senza metalli
+      if (selectedMetals.length > 0 && !includeNonMetalMolecules) {
         requestBody.selected_metals = selectedMetals;
       }
 
@@ -114,6 +117,7 @@ const CoordinationFilter = ({ selectedFile, onFilterApplied, onStatsUpdate }) =>
       setMaxCoordination(12);
     }
     setSelectedMetals([]);
+    setIncludeNonMetalMolecules(false);  // Aggiungi questa riga
   };
 
   // Funzione per gestire la selezione/deselezione dei metalli
@@ -258,6 +262,31 @@ const CoordinationFilter = ({ selectedFile, onFilterApplied, onStatsUpdate }) =>
               )}
             </div>
           )}
+
+          {/* Sezione per includere molecole senza metalli */}
+          <div className="non-metal-section">
+            <div className="non-metal-toggle">
+              <label className="toggle-container">
+                <input
+                  type="checkbox"
+                  checked={includeNonMetalMolecules}
+                  onChange={(e) => setIncludeNonMetalMolecules(e.target.checked)}
+                  disabled={isFiltering}
+                />
+                <span className="toggle-slider"></span>
+                <span className="toggle-label">
+                  Includi anche molecole senza metalli ({coordinationStats.molecules_without_metals})
+                </span>
+              </label>
+            </div>
+
+            {includeNonMetalMolecules && (
+              <div className="non-metal-info">
+                ⚠️ Quando attivo, i filtri di coordinazione e selezione metalli vengono ignorati
+              </div>
+            )}
+          </div>
+
 
           <div className="coordination-filter-controls">
             <div className="filter-inputs">

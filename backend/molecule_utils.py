@@ -19,19 +19,46 @@ logger = logging.getLogger(__name__)
 
 # Costanti
 METAL_ATOMS = frozenset({
-    # Metalli di transizione comuni
-    'Fe', 'Cu', 'Zn', 'Ni', 'Co', 'Mn', 'Cr', 'V', 'Ti', 'Sc',
-    'Ru', 'Rh', 'Pd', 'Ag', 'Cd', 'Hf', 'Ta', 'W', 'Re', 'Os',
-    'Ir', 'Pt', 'Au', 'Hg', 'Rf', 'Db', 'Sg', 'Bh', 'Hs', 'Mt',
-    'Ds', 'Rg', 'Cn',
-    # Lantanidi e Attinidi
+    # Metalli di transizione Prima Serie (Periodi 4)
+    'Sc', 'Ti', 'V', 'Cr', 'Mn', 'Fe', 'Co', 'Ni', 'Cu', 'Zn',
+    
+    # Metalli di transizione Seconda Serie (Periodi 5)
+    'Y', 'Zr', 'Nb', 'Mo', 'Tc', 'Ru', 'Rh', 'Pd', 'Ag', 'Cd',
+    
+    # Metalli di transizione Terza Serie (Periodi 6)
+    'Hf', 'Ta', 'W', 'Re', 'Os', 'Ir', 'Pt', 'Au', 'Hg',
+    
+    # Metalli di transizione Superpesanti (Periodi 7)
+    'Rf', 'Db', 'Sg', 'Bh', 'Hs', 'Mt', 'Ds', 'Rg', 'Cn',
+    
+    # Lantanidi (Terre Rare)
     'La', 'Ce', 'Pr', 'Nd', 'Pm', 'Sm', 'Eu', 'Gd', 'Tb', 'Dy',
-    'Ho', 'Er', 'Tm', 'Yb', 'Lu', 'Ac', 'Th', 'Pa', 'U', 'Np',
-    'Pu', 'Am', 'Cm', 'Bk', 'Cf', 'Es', 'Fm', 'Md', 'No', 'Lr',
-    # Altri metalli
-    'Al', 'Ga', 'In', 'Sn', 'Pb', 'Bi', 'Mg', 'Ca', 'Sr', 'Ba',
-    'Li', 'Na', 'K', 'Rb', 'Cs'
+    'Ho', 'Er', 'Tm', 'Yb', 'Lu',
+    
+    # Attinidi
+    'Ac', 'Th', 'Pa', 'U', 'Np', 'Pu', 'Am', 'Cm', 'Bk', 'Cf',
+    'Es', 'Fm', 'Md', 'No', 'Lr',
+    
+    # Metalli Alcalini
+    'Li', 'Na', 'K', 'Rb', 'Cs', 'Fr',
+    
+    # Metalli Alcalino-terrosi
+    'Be', 'Mg', 'Ca', 'Sr', 'Ba', 'Ra',
+    
+    # Metalli del Blocco p (Post-transizione)
+    'Al', 'Ga', 'In', 'Tl',  # Gruppo 13
+    'Sn', 'Pb', 'Fl',       # Gruppo 14 (Sn, Pb sono metallici)
+    'Bi', 'Mc',             # Gruppo 15 (Bi è metallico)
+    
+    # Altri elementi che possono formare complessi metallici
+    'B',   # Boro (forma complessi in alcune condizioni)
+    'Si',  # Silicio (può formare complessi organometallici)
+    'Ge',  # Germanio (può formare complessi)
+    'As',  # Arsenico (forme metalliche in complessi)
+    'Sb',  # Antimonio (forme metalliche)
+    'Te',  # Tellurio (può essere metallico in alcuni composti)
 })
+
 
 DEFAULT_IMAGE_SIZE = (300, 300)
 MAX_COORDINATION_NUMBER = 12

@@ -70,12 +70,14 @@ class CoordinationFilterRequest(BaseModel):
     csv_file: str
     min_coordination: int = 0
     max_coordination: int = 12
-    selected_metals: Optional[List[str]] = None  # Nuova opzione per filtrare per metalli
+    selected_metals: Optional[List[str]] = None
+    include_non_metal_molecules: bool = False  # <-- AGGIUNGI QUESTO
 
 
 class CoordinationAnalysisResponse(BaseModel):
     total_molecules: int
     molecules_with_metals: int
+    molecules_without_metals: int  # <-- AGGIUNGI QUESTO
     filtered_molecules: int
     coordination_distribution: Dict[int, int]
     molecules: List[Dict]
@@ -731,26 +733,36 @@ async def filter_molecules_by_coordination_endpoint(request: CoordinationFilterR
                 max_coord = coord_info['max_coordination']
                 coordination_distribution[max_coord] = coordination_distribution.get(max_coord, 0) + 1
         
-        # Applica il filtro (coordinazione + metalli se specificati)
-        if request.selected_metals:
-            filtered_molecules = filter_molecules_by_metal_and_coordination(
-                molecules, 
-                request.min_coordination, 
-                request.max_coordination,
-                request.selected_metals
-            )
+        # Calcola anche le molecole senza metalli per le statistiche
+        molecules_without_metals = len(molecules) - molecules_with_metals
+        
+        # Applica il filtro in base ai parametri
+        if request.include_non_metal_molecules:
+            # Se include_non_metal_molecules è True, filtra solo le molecole SENZA metalli
+            from molecule_utils import filter_molecules_without_metals
+            filtered_molecules = filter_molecules_without_metals(molecules)
         else:
-            filtered_molecules = filter_molecules_by_coordination(
-                molecules, 
-                request.min_coordination, 
-                request.max_coordination
-            )
+            # Filtro normale per molecole CON metalli
+            if request.selected_metals:
+                filtered_molecules = filter_molecules_by_metal_and_coordination(
+                    molecules, 
+                    request.min_coordination, 
+                    request.max_coordination,
+                    request.selected_metals
+                )
+            else:
+                filtered_molecules = filter_molecules_by_coordination(
+                    molecules, 
+                    request.min_coordination, 
+                    request.max_coordination
+                )
         
         return CoordinationAnalysisResponse(
             total_molecules=len(molecules),
             molecules_with_metals=molecules_with_metals,
             filtered_molecules=len(filtered_molecules),
             coordination_distribution=coordination_distribution,
+            molecules_without_metals=molecules_without_metals,  # <-- AGGIUNGI QUESTO
             molecules=filtered_molecules,
             selected_metals=request.selected_metals if request.selected_metals else []
         )
