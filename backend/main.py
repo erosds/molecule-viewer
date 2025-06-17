@@ -805,38 +805,55 @@ async def get_coordination_statistics(csv_file: str):
         
         from molecule_utils import analyze_metal_coordination
         
-        # Analizza la distribuzione
+        # Inizializza contatori e strutture dati
         coordination_stats = {}
         metal_elements = set()
         molecules_with_metals = 0
-        
+        molecules_without_metals = 0
         molecule_records = []
-        for smiles in molecules:
+        
+        # Analizza ogni molecola
+        for i, smiles in enumerate(molecules):
             coord_info = analyze_metal_coordination(smiles)
+            
             if coord_info['has_metal']:
                 molecules_with_metals += 1
                 max_coord = coord_info['max_coordination']
                 coordination_stats[max_coord] = coordination_stats.get(max_coord, 0) + 1
+                
+                # Raccogli tutti i metalli trovati
                 for metal in coord_info['metal_atoms']:
                     metal_elements.add(metal['symbol'])
+                
                 # Salva info per il frontend
                 molecule_records.append({
+                    "id": i,
                     "smiles": smiles,
                     "max_coordination": max_coord,
                     "metals": [m['symbol'] for m in coord_info['metal_atoms']]
                 })
+            else:
+                molecules_without_metals += 1
 
-        return {
+        # Calcola range di coordinazione
+        coordination_range = {
+            "min": min(coordination_stats.keys()) if coordination_stats else 0,
+            "max": max(coordination_stats.keys()) if coordination_stats else 0
+        }
+
+        response_data = {
             "total_molecules": len(molecules),
             "molecules_with_metals": molecules_with_metals,
+            "molecules_without_metals": molecules_without_metals,
             "coordination_distribution": coordination_stats,
             "metal_elements_found": sorted(list(metal_elements)),
-            "coordination_range": {
-                "min": min(coordination_stats.keys()) if coordination_stats else 0,
-                "max": max(coordination_stats.keys()) if coordination_stats else 0
-            },
-            "molecules": molecule_records  # <--- AGGIUNGI QUESTO
+            "coordination_range": coordination_range,
+            "molecules": molecule_records
         }
+        
+        logger.info(f"Statistiche calcolate per {csv_file}: {len(molecules)} totali, {molecules_with_metals} con metalli, {molecules_without_metals} senza metalli")
+        
+        return response_data
         
     except HTTPException as he:
         raise he

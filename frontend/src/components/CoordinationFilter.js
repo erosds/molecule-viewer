@@ -37,6 +37,11 @@ const CoordinationFilter = ({ selectedFile, onFilterApplied, onStatsUpdate }) =>
       const stats = await response.json();
       setCoordinationStats(stats);
 
+      // Aggiungi questa linea per calcolare le molecole senza metalli
+      if (stats.total_molecules && stats.molecules_with_metals) {
+        stats.molecules_without_metals = stats.total_molecules - stats.molecules_with_metals;
+      }
+
       // Imposta i valori di default basati sui dati
       if (stats.coordination_range) {
         setMinCoordination(stats.coordination_range.min);
