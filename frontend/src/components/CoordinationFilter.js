@@ -198,6 +198,10 @@ const CoordinationFilter = ({ selectedFile, onFilterApplied, onStatsUpdate }) =>
                 <div className="stat-number">{coordinationStats.molecules_with_metals}</div>
                 <div className="stat-label">Con Metalli</div>
               </div>
+              <div className="stat-item metal">
+                <div className="stat-number">{coordinationStats.molecules_without_metals}</div>
+                <div className="stat-label">Senza Metalli</div>
+              </div>
             </div>
           </div>
 

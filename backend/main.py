@@ -16,6 +16,7 @@ from datetime import datetime
 import zipfile
 from fastapi.responses import StreamingResponse
 from rdkit import Chem
+from typing import Any  # Aggiungi questo import se manca
 
 # Importa le funzioni di utilità per le molecole
 from molecule_utils import smiles_to_3d, smiles_to_2d_image
@@ -76,9 +77,180 @@ class CoordinationAnalysisResponse(BaseModel):
     total_molecules: int
     molecules_with_metals: int
     filtered_molecules: int
-    coordination_distribution: Dict[int, int]  # numero_coordinazione -> conteggio
+    coordination_distribution: Dict[int, int]
     molecules: List[Dict]
+    selected_metals: Optional[List[str]] = None  # Aggiungi questo campo
+    
+class NonMetalFilterRequest(BaseModel):
+    csv_file: str
 
+class NonMetalFilterResponse(BaseModel):
+    total_molecules: int
+    molecules_without_metals: int
+    filtered_molecules: int
+    molecules: List[Dict]
+    
+# Inizializzazione FastAPI
+app = FastAPI(title="Molecular Viewer API")
+    
+@app.post("/api/coordination-stats")
+async def get_coordination_statistics_post(request: dict):
+    """
+    Ottiene statistiche sulla distribuzione del numero di coordinazione in un file CSV (versione POST).
+    """
+    csv_file = request.get('csv_file')
+    if not csv_file:
+        raise HTTPException(status_code=400, detail="csv_file è richiesto")
+    
+    return await get_coordination_statistics(csv_file)
+
+@app.post("/api/filter-non-metal-molecules", response_model=NonMetalFilterResponse)
+async def filter_non_metal_molecules(request: NonMetalFilterRequest):
+    """
+    Filtra le molecole per mostrare solo quelle senza metalli.
+    """
+    try:
+        # Carica le molecole dal file CSV
+        file_path = os.path.join(CSV_DIR, request.csv_file)
+        if not os.path.exists(file_path):
+            raise HTTPException(status_code=404, detail=f"File CSV non trovato: {request.csv_file}")
+        
+        molecules = []
+        with open(file_path, 'r') as f:
+            csv_reader = csv.reader(f)
+            headers = [h.lower() for h in next(csv_reader)]
+            
+            # Trova l'indice della colonna SMILES
+            smiles_index = None
+            for i, header in enumerate(headers):
+                if 'smiles' in header:
+                    smiles_index = i
+                    break
+            
+            if smiles_index is None:
+                raise HTTPException(status_code=400, detail=f"Nessuna colonna SMILES trovata nel file {request.csv_file}")
+            
+            # Leggi tutte le righe e estrai i dati SMILES
+            for i, row in enumerate(csv_reader):
+                if len(row) > smiles_index:
+                    smiles = row[smiles_index].strip()
+                    if smiles:
+                        molecules.append({
+                            "id": i,
+                            "smiles": smiles
+                        })
+        
+        # Importa la funzione di analisi
+        from molecule_utils import analyze_metal_coordination
+        
+        # Filtra le molecole per trovare solo quelle senza metalli
+        non_metal_molecules = []
+        molecules_with_metals = 0
+        
+        for molecule in molecules:
+            coord_info = analyze_metal_coordination(molecule['smiles'])
+            
+            if coord_info['has_metal']:
+                molecules_with_metals += 1
+            else:
+                # Questa molecola non ha metalli, la includiamo nel risultato
+                molecule_copy = molecule.copy()
+                molecule_copy['coordination_info'] = coord_info
+                non_metal_molecules.append(molecule_copy)
+        
+        # Prepara la risposta
+        response_data = {
+            "total_molecules": len(molecules),
+            "molecules_without_metals": len(non_metal_molecules),
+            "filtered_molecules": len(non_metal_molecules),
+            "molecules": non_metal_molecules
+        }
+        
+        logger.info(f"Filtro molecole senza metalli completato: {len(non_metal_molecules)}/{len(molecules)} molecole senza metalli")
+        
+        return NonMetalFilterResponse(**response_data)
+        
+    except Exception as e:
+        logger.error(f"Errore nel filtro molecole senza metalli: {e}")
+        raise HTTPException(status_code=500, detail=f"Errore interno del server: {str(e)}")
+
+
+# Aggiungi anche questa funzione di utilità al file molecule_utils.py
+
+def filter_molecules_without_metals(molecules_data: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """
+    Filtra una lista di molecole per restituire solo quelle senza metalli.
+    
+    Args:
+        molecules_data: Lista di dizionari con dati delle molecole
+        
+    Returns:
+        list: Lista filtrata di molecole senza metalli
+    """
+    if not isinstance(molecules_data, list):
+        logger.error("molecules_data deve essere una lista")
+        return []
+    
+    filtered_molecules = []
+    
+    for molecule in molecules_data:
+        if not isinstance(molecule, dict):
+            continue
+            
+        smiles = molecule.get('smiles', '')
+        if not smiles:
+            continue
+            
+        coordination_info = analyze_metal_coordination(smiles)
+        
+        # Includi solo le molecole che NON hanno metalli
+        if not coordination_info['has_metal']:
+            molecule_copy = molecule.copy()
+            molecule_copy['coordination_info'] = coordination_info
+            filtered_molecules.append(molecule_copy)
+    
+    return filtered_molecules
+
+
+def get_molecules_statistics(molecules_data: List[Dict[str, Any]]) -> Dict[str, Any]:
+    """
+    Calcola statistiche sui metalli per una lista di molecole.
+    
+    Args:
+        molecules_data: Lista di dizionari con dati delle molecole
+        
+    Returns:
+        dict: Statistiche con conteggi di molecole con/senza metalli
+    """
+    if not isinstance(molecules_data, list):
+        return {
+            'total_molecules': 0,
+            'molecules_with_metals': 0,
+            'molecules_without_metals': 0
+        }
+    
+    total_molecules = len(molecules_data)
+    molecules_with_metals = 0
+    
+    for molecule in molecules_data:
+        if not isinstance(molecule, dict):
+            continue
+            
+        smiles = molecule.get('smiles', '')
+        if not smiles:
+            continue
+            
+        coordination_info = analyze_metal_coordination(smiles)
+        if coordination_info['has_metal']:
+            molecules_with_metals += 1
+    
+    molecules_without_metals = total_molecules - molecules_with_metals
+    
+    return {
+        'total_molecules': total_molecules,
+        'molecules_with_metals': molecules_with_metals,
+        'molecules_without_metals': molecules_without_metals
+    }
 
 # Funzione helper per validazione veloce di una singola molecola
 def validate_single_smiles(smiles: str) -> bool:
@@ -284,9 +456,6 @@ class ModelResponse(BaseModel):
     model_path: str
     success: bool
     message: Optional[str] = None
-
-# Inizializzazione FastAPI
-app = FastAPI(title="Molecular Viewer API")
 
 # Configurazione CORS per permettere al frontend di comunicare con l'API
 app.add_middleware(
